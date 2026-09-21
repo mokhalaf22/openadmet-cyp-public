@@ -10,6 +10,9 @@ data/
 # Submission artifact
 submission.csv
 
+# macOS
+.DS_Store
+
 # Python
 __pycache__/
 *.py[cod]
