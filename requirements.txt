@@ -16,5 +16,8 @@ pyarrow
 datasets
 huggingface_hub
 
+# EDA / plots (FINDINGS.md figures are generated with matplotlib)
+matplotlib
+
 # Testing
 pytest

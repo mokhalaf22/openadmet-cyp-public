@@ -129,6 +129,15 @@ Verified from the pinned dataset by EDA (tables, plots, and noise estimates in
 - **Empirical LOQ of the fitted direct pIC50 is ~2.0, not 4.0**, with no hard
   edge; the censoring signal is in `conf_low` (floor ~1.03), not the point.
 
+Two things share the phrase "assigned negative" and must never be conflated.
+The organizers' **assigned negative** (direct pIC50 < 4 AND TDI-arm pIC50 < 4)
+is a compound measured in *both* arms and found inactive in both — real
+experimental content, and part of the scored negative class on the blinded test.
+Our **direct-arm-never-assayed** rows have no direct measurement at all (Emax
+confirms the arm was not run); their `is_TDI = False` is a bookkeeping default
+with no experimental content, and they are excluded from TDI train/eval via
+`guards.py`. Same phrase, opposite information value — keep them separate.
+
 ## Environment
 
 MacBook Pro M4 Pro, 24 GB. CPU is fine for everything here — a D-MPNN over
