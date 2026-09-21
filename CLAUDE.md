@@ -116,6 +116,18 @@ Verified from the pinned dataset by EDA (tables, plots, and noise estimates in
   and CYP3A4 preincubation shifts are predominantly positive; negatives are
   ~13% and almost all within measurement noise. CYP1A2/CYP2C9 (not scored for
   TDI) center on zero, where the constraint is harmless.
+- **A missing direct arm means "not assayed", NOT "censored".** ~1,249 CYP3A4
+  rows (~35% of its TDI labels) have a measured TDI arm but no direct DRC: every
+  direct-side column is NaN and the Emax file confirms the direct arm was never
+  run. They are frequently potent under TDI conditions (median TDI pIC50 5.4),
+  so this is not left-censoring. Their `is_TDI = False` is an assigned default
+  carrying no experimental information. Never supervise `mu` on these rows, and
+  exclude them from TDI classification training and internal evaluation (guard:
+  `cyp.guards.assigned_negative_mask`). Distinct from the organizers' formal
+  "assigned negative" class (direct < 4 AND TDI-arm < 4), which is scored on the
+  blinded test — see FINDINGS.md.
+- **Empirical LOQ of the fitted direct pIC50 is ~2.0, not 4.0**, with no hard
+  edge; the censoring signal is in `conf_low` (floor ~1.03), not the point.
 
 ## Environment
 

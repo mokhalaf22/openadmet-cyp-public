@@ -78,7 +78,67 @@ difference (used above to judge whether negative shifts are real):
 | CYP2D6 | 0.069 | 0.065 | 0.095 |
 | CYP3A4 | 0.095 | 0.061 | 0.113 |
 
+## 4. Empirical LOQ, and why the CYP3A4 "direct-less" rows are not censored
+
+### Empirical LOQ ≈ 2.0, with no hard edge
+
+Lower tail of the observed direct pIC50 point estimates (rows that have one):
+
+| isoform | n | min | p1 | p5 | % within 0.5 of min |
+|---|---|---|---|---|---|
+| CYP1A2 | 1412 | 1.906 | 2.000 | 2.679 | 4.0% |
+| CYP2C9 | 1285 | 2.098 | 2.249 | 3.248 | 2.2% |
+| CYP2D6 | 1493 | 1.947 | 2.024 | 2.617 | 4.4% |
+| CYP3A4 | 2335 | 1.909 | 1.964 | 2.094 | 12.1% |
+
+There is **no hard left edge at 4.0** — nor a spike piling on any single floor
+value. The point estimates simply thin out around pIC50 ≈ 1.9–2.1 (pooled
+p1 ≈ 2.0). The censoring signal lives in `conf_low` (which floors near 1.03,
+see §1), not in the point estimate. So the assumed `4.0` limit of quantitation
+is wrong; the empirical LOQ of the fitted point is ~2.0.
+
+### The direct arm was never assayed for 1,249 CYP3A4 rows
+
+CYP3A4 has 1,249 rows with a measured `TDI_condition` pIC50 but no direct pIC50
+(≈35% of its 3,584 TDI labels). These are **not left-censored weak compounds**:
+
+- **Every direct-side column is 100% NaN** for these rows — `pIC50`,
+  `conf_low`, `conf_high`, `std`. Not a low fit or a wide fit: no fit at all.
+- **Emax-file evidence:** all 1,249 appear in `TRAIN_Emax.csv` with a
+  TDI-condition Emax measured and **zero** direct-inhibition Emax. The direct
+  arm was never run.
+- Their TDI-condition potency **skews higher** than both-arms rows (median
+  **5.40 vs 4.63**): 88.5% exceed pIC50 4.0, 66.8% exceed 5.0, and 283 rows
+  (22.7%) exceed 6.0 (1 µM — genuinely potent). Examples, all `is_TDI=False`:
+  `OCNT-0454261` (7.27), `OCNT-0454289` (6.89), `OCNT-0454217` (6.78).
+- **All 1,249 are `is_TDI = False`** — an assigned default, since no direct arm
+  means no measurable shift. It carries no experimental information about `mu`.
+
+![Q4 direct-less](figures/q2b_directless.png)
+
+Consequence: never supervise `mu` on these rows (a `(-inf, LOQ]` target would
+fabricate a large shift on potent compounds), and never let them into TDI
+classification training or internal evaluation.
+
+### Organizer labeling taxonomy (challenge Space FAQ)
+
+The Space FAQ (`config.py`) confirms `is_TDI` is a deterministic function of the
+two arms relative to the pIC50 = 4 reliable lower limit:
+
+- **Positive** — direct pIC50 > 4 and shift > 0.301 (2-fold).
+- **Negative** — direct pIC50 > 4 and shift ≤ 0.301.
+- **Inferred positive** — direct pIC50 < 4 but TDI-arm pIC50 > 4.301.
+- **Assigned negative** — direct pIC50 < 4 *and* TDI-arm pIC50 < 4 ("labeled
+  negative by convention").
+
+Scored positive = positives + inferred positives; scored negative = negatives +
+assigned negatives. The FAQ adds that on the blinded test, predictions are
+requested for every compound, but "only compounds whose label can be assigned
+with confidence contribute to the score." Note the organizers' formal *assigned
+negative* (both arms measured and < 4) is a **different** population from the
+training-only *direct-arm-never-assayed* rows above.
+
 ## Reproduce
 
-Numbers and plots regenerated from `data/` (pinned revision) by the EDA script.
+Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts.
 Everything above is derived solely from the public challenge dataset.
