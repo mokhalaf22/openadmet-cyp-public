@@ -94,6 +94,29 @@ IDs+SMILES only), `cyp-challenge-TRAIN_inhibition.csv` (4,905, direct arm),
 `cyp-challenge-TRAIN_Emax.csv` (6,145), and
 `cyp-challenge-single-concentration-TRAIN.csv` (17,504, raw screen).
 
+## Confirmed data conventions
+
+Verified from the pinned dataset by EDA (tables, plots, and noise estimates in
+`FINDINGS.md`). Where these conflict with the narrative above, these win.
+
+- **Censoring is already in the intervals — no `(-inf, 4.0]` case.** Use
+  `{ISO}_pIC50_{arm}_conf_low` / `_conf_high` verbatim as the interval bounds
+  `[lo, hi]` in the hinge loss. Left-censored compounds are encoded as a low
+  `conf_low` (finite floor ~1.03) with a wide interval (width piles up at
+  ~2.0–2.8); the reported bounds already say "only known to be below X". Drop
+  the flat `4.0` cap described under "Modelling approach" and consume the
+  reported bounds everywhere.
+- **`TRAIN_TDI` is the single training source; `TRAIN_inhibition` is ignored.**
+  Its direct-arm values are byte-identical to `TRAIN_TDI` (Pearson 1.0, MAE 0)
+  and its compounds are a strict subset. The direct and TDI arms are the same
+  assay campaign, not separate runs, so one shared direct-arm head — no
+  per-file heads. (`TRAIN_TDI` adds ~1,238 CYP3A4 TDI-condition-only rows on
+  top; it never adds direct-arm rows.)
+- **`delta >= 0` (softplus) is justified for the scored TDI isoforms.** CYP2D6
+  and CYP3A4 preincubation shifts are predominantly positive; negatives are
+  ~13% and almost all within measurement noise. CYP1A2/CYP2C9 (not scored for
+  TDI) center on zero, where the constraint is harmless.
+
 ## Environment
 
 MacBook Pro M4 Pro, 24 GB. CPU is fine for everything here — a D-MPNN over
