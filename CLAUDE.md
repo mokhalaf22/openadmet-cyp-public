@@ -78,6 +78,22 @@ series*, so all analogs of a parent land on the same side. Random CV puts
 near-duplicates in both train and val and produces a number that will not
 survive submission. Always report scaffold-split OOF.
 
+## Dataset
+
+Source: Hugging Face dataset `openadmet/cyp-challenge-train-test`.
+
+**Pinned revision:** `3ac9c5dbb83eec5780ec7fa511908698cfe1396d`
+(last modified 2026-08-27). Downloaded via `src/cyp/download.py`, which passes
+this SHA explicitly — never HEAD. `make data` fetches it into
+`data/cyp-challenge-train-test/`. If upstream changes, bump the SHA here and in
+`download.py` in the same commit and re-run `make inspect`.
+
+Files (confirmed by `make inspect`): `cyp-challenge-TEST-BLINDED.csv` (750,
+IDs+SMILES only), `cyp-challenge-TRAIN_inhibition.csv` (4,905, direct arm),
+`cyp-challenge-TRAIN_TDI.csv` (6,145, both arms + `{ISO}_is_TDI`),
+`cyp-challenge-TRAIN_Emax.csv` (6,145), and
+`cyp-challenge-single-concentration-TRAIN.csv` (17,504, raw screen).
+
 ## Environment
 
 MacBook Pro M4 Pro, 24 GB. CPU is fine for everything here — a D-MPNN over

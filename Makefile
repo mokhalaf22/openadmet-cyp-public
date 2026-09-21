@@ -7,7 +7,7 @@ PY := python
 PYTHONPATH := src
 export PYTHONPATH
 
-.PHONY: venv install inspect baseline train submit test clean
+.PHONY: venv install data inspect baseline train submit test clean
 
 venv:  ## create the virtual environment
 	$(PY) -m venv .venv
@@ -15,6 +15,9 @@ venv:  ## create the virtual environment
 install:  ## install runtime + test dependencies into the active environment
 	$(PY) -m pip install --upgrade pip
 	$(PY) -m pip install -r requirements.txt
+
+data:  ## download the challenge dataset at the pinned revision into ./data
+	$(PY) -m cyp.download
 
 inspect:  ## print every downloaded file + columns; run this FIRST
 	$(PY) -m cyp.inspect
