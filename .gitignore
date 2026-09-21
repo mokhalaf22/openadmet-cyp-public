@@ -7,8 +7,9 @@ data/
 # Model checkpoints
 *.ckpt
 
-# Submission artifact
+# Submission artifacts
 submission.csv
+submissions/
 
 # macOS
 .DS_Store

@@ -158,6 +158,35 @@ make train       # the two-head censored model
 make submit      # validate schema + write submission.csv
 ```
 
+## Submission schema
+
+Recorded verbatim from the challenge Space `config.py` / Submit tab (do not
+infer these). Two **independent** files, one per track — each a `.parquet`
+(preferred) or `.csv` with **exactly 750 rows**, one per test compound, no
+`NaN`/`inf`.
+
+Identifier columns (both files, `IDENTIFIER_COLUMNS`): `SMILES`, `Molecule_Name`.
+
+Regression track (`REQUIRED_REGRESSION_COLUMNS` = identifiers + endpoints):
+```
+SMILES, Molecule_Name,
+CYP1A2_pIC50_direct_inhibition, CYP2C9_pIC50_direct_inhibition,
+CYP2D6_pIC50_direct_inhibition, CYP3A4_pIC50_direct_inhibition
+```
+Each endpoint is a `float` pIC50.
+
+Classification track (`REQUIRED_CLASSIFICATION_COLUMNS` = identifiers + endpoints):
+```
+SMILES, Molecule_Name, CYP2D6_is_TDI, CYP3A4_is_TDI
+```
+Each endpoint is a `bool` (`True`/`False` or `1`/`0`). Note the endpoint order
+is CYP2D6 then CYP3A4.
+
+Server-side validation (`submission.py::_read_tabular_submission`) only checks:
+file is `.parquet`/`.csv`, `len(df) == 750`, and all required columns are
+present (`set(required) - set(df.columns)`); extra columns are ignored
+server-side. Our `make submit` validator is deliberately stricter.
+
 ## Before every submission
 
 Run `make submit`, which must assert:
