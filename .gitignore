@@ -1,0 +1,18 @@
+# Data is never committed (see CLAUDE.md: assume every file here is world-readable).
+data/
+
+# Virtual environment
+.venv/
+
+# Model checkpoints
+*.ckpt
+
+# Submission artifact
+submission.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/

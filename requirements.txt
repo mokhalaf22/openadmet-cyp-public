@@ -1,0 +1,20 @@
+# OpenADMET CYP blind challenge — pinned-loosely runtime deps.
+# CPU is sufficient for everything here (see CLAUDE.md "Environment").
+
+# Cheminformatics
+rdkit
+
+# Models
+lightgbm
+chemprop
+torch
+scikit-learn
+
+# Data
+pandas
+pyarrow
+datasets
+huggingface_hub
+
+# Testing
+pytest

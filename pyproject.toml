@@ -1,0 +1,12 @@
+[project]
+name = "openadmet-cyp-public"
+version = "0.0.0"
+description = "OpenADMET CYP Inhibition Blind Challenge — public model report entry"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
