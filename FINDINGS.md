@@ -418,6 +418,16 @@ further regularization did not close the residual ~0.02–0.07 gap to ridge: on 
 near-linear signal an MLP can match but not beat a regularized linear model, so
 that remainder is model-class, not a bug.
 
+**Useful negative result.** That ridge ≈ LightGBM (and a well-optimized MLP does
+no better) means the direct-pIC50 signal *on ECFP4+descriptors* is largely
+**linear**. Extra model capacity does not help; the four learners agree to within
+a small margin. So the ceiling here is **representational, not
+capacity-limited** — the ECFP4 fingerprint, not the learner, is the bottleneck.
+This is why the ablation tests representation (shared encoder, then D-MPNN)
+before loss design: only a different molecular representation can move the floor,
+and if a learned D-MPNN representation cannot beat ridge-on-ECFP4, the tuning
+levers below it will not either. Worth stating plainly in the report.
+
 **Consequence for the ablation study.** The control is the two-head
 `ecfp+per-iso+point` config; each switch's effect is measured as a delta from it,
 with Ridge and LightGBM kept as external reference columns. The ECFP+MLP control
