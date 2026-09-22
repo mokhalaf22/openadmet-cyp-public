@@ -339,8 +339,59 @@ back — macro 0.222 vs a 0.4091 rank-11 cut — dragged down by CYP2D6 (0.097).
 leaderboard entries carry **no model-report link**, so the field's methods are
 largely undisclosed.
 
+## 10. Two-head encoder diagnostic: the fold-variance blow-up was optimization
+
+Before running ablations, the neural two-head model's baseline-closest config
+(ecfp + per-isoform + point) was far worse than LightGBM with fold std 3–4× the
+baseline's. This section isolates why.
+
+**Feature cleaning.** Dropping degenerate columns before standardizing (rather
+than clipping after): `Ipc` (1), near-zero-variance (14), non-finite (0) → 2,250
+of 2,265 features kept.
+
+**Four learners, identical cleaned features and folds** (OOF ST-RAE, mean ± fold sd):
+
+| isoform | LightGBM | Ridge | sklearn-MLP | torch-MLP (pre-fix) |
+|---|---|---|---|---|
+| CYP1A2 | 0.525 ± 0.013 | 0.593 ± 0.025 | 2.038 ± 0.296 | 0.844 ± 0.057 |
+| CYP2C9 | 0.367 ± 0.021 | 0.384 ± 0.027 | 2.111 ± 0.146 | 0.660 ± 0.063 |
+| CYP2D6 | 0.612 ± 0.009 | 0.690 ± 0.025 | 2.101 ± 0.153 | 0.896 ± 0.073 |
+| CYP3A4 | 0.297 ± 0.020 | 0.309 ± 0.020 | 0.945 ± 0.099 | 0.460 ± 0.035 |
+
+**Ridge nearly matches LightGBM** — the direct-pIC50 signal in these features is
+largely linear, and a regularized linear model is near-optimal. Both neural nets
+underperformed: `sklearn-MLP` catastrophically (worse than predict-a-constant),
+the torch MLP by ~0.15–0.35 with inflated fold variance.
+
+**Root causes (all fixed).** The CYP2D6 loss curves showed train weighted-L1
+collapsing to ~0 by epoch 50 while validation ST-RAE plateaued high — classic
+overfitting, plus two setup bugs:
+
+1. **Unbounded features** (`Ipc` ~1e14, rare bits >70σ) destabilized the MLP →
+   *drop* them before standardizing.
+2. **Output-bias decay:** strong `weight_decay` under Adam shrank the output
+   bias toward 0, pulling predictions toward 0 instead of the mean pIC50 (ST-RAE
+   >1) → *standardize the target* so 0 is the mean.
+3. **Too few optimizer steps / overfitting** from full-batch training and a wide,
+   weakly-regularized net → *minibatch Adam* with stronger regularization.
+
+![MLP loss curves](figures/mlp_diag_curves.png)
+
+**After the fixes**, the two-head control (ecfp + per-iso + point) lands at
+0.634 / 0.454 / 0.708 / 0.338 with fold std **0.012–0.037** (was 0.06–0.54) —
+the fold-variance blow-up was optimization, now resolved. Seed-ensembling and
+further regularization did not close the residual ~0.02–0.07 gap to ridge: on a
+near-linear signal an MLP can match but not beat a regularized linear model, so
+that remainder is model-class, not a bug.
+
+**Consequence for the ablation study.** The control is the two-head
+`ecfp+per-iso+point` config; each switch's effect is measured as a delta from it,
+with Ridge and LightGBM kept as external reference columns. The ECFP+MLP control
+is a stable sanity floor slightly below ridge; the D-MPNN encoder (switch c) is
+where learned representations could actually beat ECFP+GBM.
+
 ## Reproduce
 
-Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts
-and `cyp.baseline`. Everything above is derived solely from the public challenge
-dataset.
+Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
+`cyp.baseline`, `cyp.twohead`, and `experiments/`. Everything above is derived
+solely from the public challenge dataset.
