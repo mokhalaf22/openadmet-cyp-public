@@ -322,6 +322,23 @@ improvement beyond fold variance, per the decision rule). Gains will have to com
 from better signal (features/representation) or the interval-hinge two-head
 objective, not from de-shrinking a median regressor.
 
+## 9. Interim leaderboard state
+
+Recorded 2026-09-22 from the challenge leaderboard. Metrics are macro-averaged
+across the scored isoforms: **MA-ST-RAE** (regression, lower is better) and
+**MA-MCC** (classification, higher is better).
+
+| track | leaderboard top | rank 11 | ours |
+|---|---|---|---|
+| Regression (MA-ST-RAE) | 0.3814 | 0.4404 | 0.451 (local macro OOF) |
+| Classification (MA-MCC) | 0.4647 | 0.4091 | 0.222 (baseline macro; CYP3A4 0.347, CYP2D6 0.097) |
+
+Reading: on regression our local macro OOF (0.451) would sit just off the rank-11
+cut (0.4404), and the field is tight (top 0.3814). On classification we are far
+back — macro 0.222 vs a 0.4091 rank-11 cut — dragged down by CYP2D6 (0.097). Most
+leaderboard entries carry **no model-report link**, so the field's methods are
+largely undisclosed.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts
