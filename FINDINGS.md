@@ -434,6 +434,53 @@ with Ridge and LightGBM kept as external reference columns. The ECFP+MLP control
 is a stable sanity floor slightly below ridge; the D-MPNN encoder (switch c) is
 where learned representations could actually beat ECFP+GBM.
 
+## 12. Ablation phase 1 — representation: a learned D-MPNN moves the floor
+
+Option A, reordered to test representation before loss design. Evaluated on
+**global scaffold folds** (one partition over all valid compounds, so
+per-isoform and shared configs share an identical held-out set); deltas from the
+two-head control (ecfp + per-iso + point); Ridge and LightGBM as external
+references; fold std throughout. Direct-arm regression, OOF ST-RAE (lower better).
+
+| config | CYP1A2 | CYP2C9 | CYP2D6 | CYP3A4 | macro |
+|---|---|---|---|---|---|
+| control (ecfp, per-iso) | 0.625 ± 0.037 | 0.432 ± 0.036 | 0.695 ± 0.031 | 0.336 ± 0.018 | 0.522 |
+| **(b) shared ecfp** | 0.584 ± 0.039 | 0.384 ± 0.026 | 0.659 ± 0.020 | 0.332 ± 0.021 | **0.490** |
+| **(c) shared D-MPNN** | 0.540 ± 0.023 | 0.364 ± 0.025 | 0.583 ± 0.034 | 0.341 ± 0.056 | **0.457** |
+| ridge (ref) | 0.590 ± 0.030 | 0.387 ± 0.028 | 0.676 ± 0.042 | 0.304 ± 0.021 | 0.489 |
+| LightGBM (ref) | 0.535 ± 0.030 | 0.362 ± 0.033 | 0.612 ± 0.023 | 0.297 ± 0.013 | 0.451 |
+
+Deltas from the control (negative = better):
+
+| config | CYP1A2 | CYP2C9 | CYP2D6 | CYP3A4 | macro |
+|---|---|---|---|---|---|
+| (b) shared ecfp | −0.042 | −0.048 | −0.036 | −0.004 | **−0.032** |
+| (c) shared D-MPNN | −0.085 | −0.068 | −0.112 | +0.005 | **−0.065** |
+
+**(b) Sharing helps.** The multi-task shared encoder beats the per-isoform
+control by −0.032 macro (better on all four), lifting the MLP to ridge's level
+(0.490 vs 0.489). The sparse training matrix benefits from sharing, so it stays
+on for (c).
+
+**(c) The learned representation clears the ECFP4 bar.** Swapping the ECFP4
+encoder for a D-MPNN (holding sharing constant) improves macro by a further
+−0.033 (0.457 vs 0.490). Shared D-MPNN **beats ridge-on-ECFP4** (0.457 vs 0.489)
+and **ties LightGBM** overall (0.457 vs 0.451) — and it **beats LightGBM on
+CYP2D6** (0.583 vs 0.612), the isoform with the §5 label-noise ceiling. This
+refines §11: the ceiling was representational, not capacity-limited, and a
+different molecular representation *does* move the floor — most where it matters.
+
+*Caveats.* The D-MPNN is only modestly trained here (depth 3, d_h 200, 50
+epochs); it underperforms LightGBM on CYP3A4 (0.341 vs 0.297) with the widest
+fold std (0.056), consistent with undertraining there — so these are a **floor**
+for D-MPNN, not its best. Per-isoform D-MPNN was not run (shared is both stronger
+and the cleaner encoder-swap comparison against shared-ecfp).
+
+**Decision.** The representation lever works, so the rest of the ablation is
+worth running as planned: adopt the shared D-MPNN representation and test the
+loss switches (interval targets, width-weighted pull, shift_prior), then the
+derived-vs-classifier TDI label. Stopped here per plan for review.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
