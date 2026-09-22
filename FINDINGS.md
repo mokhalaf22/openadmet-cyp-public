@@ -199,12 +199,14 @@ sets, which is the relevant population for a label-noise argument.)
 ## 6. Baseline submission — OOF vs blind leaderboard
 
 To test whether scaffold-split OOF tracks the blind leaderboard while there is
-still time to correct course, the reference baseline is **prepared for
-submission** to the interim leaderboard. The upload itself is an interactive
-Space form tied to a HuggingFace account and public disclosure checkboxes
-(open-source code + report link, proprietary-data flag), so it is performed by a
-maintainer, not automated; the validated files and the numbers to compare are
-recorded here.
+still time to correct course, the reference baseline — blinded predictions
+**generated from commit `5d5dbdd`** via `make baseline && make submit` — is
+**submitted to the interim leaderboard**, so the OOF-vs-blind comparison on
+2026-09-25 is anchored to one specific model. The upload itself is an
+interactive Space form tied to a HuggingFace account and public disclosure
+checkboxes (open-source code + report link, proprietary-data flag), so it is
+performed by a maintainer, not automated; the validated files and the numbers to
+compare are recorded here.
 
 - **Submission portal:** open. The challenge is a single continuous stage;
   submissions run **2026-08-17 → 2026-11-03 (23:59 UTC)**. The **intermediate
