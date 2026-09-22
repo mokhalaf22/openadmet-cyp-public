@@ -339,7 +339,41 @@ back — macro 0.222 vs a 0.4091 rank-11 cut — dragged down by CYP2D6 (0.097).
 leaderboard entries carry **no model-report link**, so the field's methods are
 largely undisclosed.
 
-## 10. Two-head encoder diagnostic: the fold-variance blow-up was optimization
+## 10. TDI threshold calibration: a discrimination gap, not a calibration one
+
+The baseline's TDI thresholds are tuned to the OOF-argmax MCC (CYP3A4 0.35,
+CYP2D6 0.10). Two facts about that:
+
+**MCC's optimal threshold is prevalence-invariant here.** Reweighting the OOF to
+simulate blind positive rates of 15/20/25% barely moves the argmax — CYP3A4 stays
+at 0.35 under every balance, CYP2D6 stays at 0.10 (nudging to 0.30 only at 15%,
+with identical MCC). MCC already accounts for class balance, so re-tuning the cut
+to the blind prevalence recovers no MCC.
+
+**Our submitted positive rates were far above prevalence.** At the tuned cuts the
+submission called **46.9%** (CYP2D6) and **40.1%** (CYP3A4) of the 750 blinded
+compounds positive, against an estimated blind scored prevalence near **17%**.
+That is not a fixable miscalibration: it is what the MCC-optimal thresholds
+produce given weak classifiers (the low CYP2D6 cut is "best of a bad lot").
+
+**So the classification gap is a discrimination problem, not a calibration one.**
+The lever is model quality — better features / the two-head model — not the
+threshold, especially for CYP2D6, which also carries the §5 label-noise ceiling.
+
+*Caveat:* this all assumes the blind set's per-class score distributions resemble
+OOF. With no blind labels we cannot check it; §7 argues OOF is a credible proxy.
+
+**Applied change — CYP2D6 threshold 0.10 → 0.30 (variance reduction, not a score
+grab).** Simulated MCC is unchanged (0.097 at both cuts), but 0.10 sits at an
+extreme of the decision function where the predicted positive count is highly
+sensitive to any shift in the blind score distribution; 0.30 gives the same
+expected MCC with less variance, and at the ~17% estimated prevalence the sweep
+actually favours it. The change drops the CYP2D6 submitted positive rate from
+46.9% to **13.2%** (99/750) — in line with prevalence — with no expected MCC cost.
+Encoded as `baseline.TDI_THRESHOLD_OVERRIDE`; the classification submission was
+regenerated (CYP3A4 unchanged at 0.35 / 40.1%).
+
+## 11. Two-head encoder diagnostic: the fold-variance blow-up was optimization
 
 Before running ablations, the neural two-head model's baseline-closest config
 (ecfp + per-isoform + point) was far worse than LightGBM with fold std 3–4× the

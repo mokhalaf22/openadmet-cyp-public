@@ -15,7 +15,7 @@ Evaluation uses the SAME scaffold folds as `cyp.baseline` (per isoform,
 credible interval `[conf_low, conf_high]` regardless of the training target — so
 every number is directly comparable to the baseline column.
 
-Training hygiene (established by the diagnostic in FINDINGS §10):
+Training hygiene (established by the diagnostic in FINDINGS §11):
   - drop degenerate features (Ipc, near-zero-variance, non-finite) BEFORE
     standardizing, rather than clipping extreme values after the fact;
   - standardize the target per fold, so weight-decay shrinks predictions toward
@@ -56,7 +56,7 @@ SEED = 0
 N_FOLDS = 5
 
 # External reference columns, on the identical per-isoform scaffold folds.
-# LightGBM = cyp.baseline (FINDINGS §6); Ridge = FINDINGS §10 diagnostic.
+# LightGBM = cyp.baseline (FINDINGS §6); Ridge = FINDINGS §11 diagnostic.
 BASELINE_STRAE = {"CYP1A2": (0.526, 0.017), "CYP2C9": (0.364, 0.019),
                   "CYP2D6": (0.617, 0.012), "CYP3A4": (0.298, 0.019)}
 RIDGE_STRAE = {"CYP1A2": (0.593, 0.025), "CYP2C9": (0.384, 0.027),
