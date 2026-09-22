@@ -68,15 +68,21 @@ Shift = `TDI_condition - direct`, over rows with both arms measured.
 
 ## Noise estimates
 
-Median reported per-measurement std and the propagated noise on the arm
-difference (used above to judge whether negative shifts are real):
+**Shift-noise estimator (used throughout this document).** For each row,
+propagate the two reported per-measurement stds into the noise on the shift,
+`σ_shift = √(σ_direct² + σ_TDI²)`, then take the **median over the specified
+row set**. The "shift noise" column below is that median over all both-arms
+rows. (An earlier note quoted ~0.10 / ~0.11 for CYP2D6/CYP3A4 from
+`hypot(median σ_direct, median σ_TDI)`; that hypot-of-medians shortcut is
+dropped in favour of this per-row-then-median derivation, which is what §5 also
+uses.)
 
-| isoform | direct `_std` | TDI `_std` | ~diff noise |
+| isoform | median direct `_std` | median TDI `_std` | shift noise (all both-arms rows) |
 |---|---|---|---|
 | CYP1A2 | 0.084 | 0.088 | 0.121 |
-| CYP2C9 | 0.137 | 0.133 | 0.191 |
-| CYP2D6 | 0.069 | 0.065 | 0.095 |
-| CYP3A4 | 0.095 | 0.061 | 0.113 |
+| CYP2C9 | 0.137 | 0.133 | 0.194 |
+| CYP2D6 | 0.069 | 0.065 | 0.098 |
+| CYP3A4 | 0.095 | 0.061 | 0.123 |
 
 ## 4. Empirical LOQ, and why the CYP3A4 "direct-less" rows are not censored
 
@@ -138,7 +144,92 @@ with confidence contribute to the score." Note the organizers' formal *assigned
 negative* (both arms measured and < 4) is a **different** population from the
 training-only *direct-arm-never-assayed* rows above.
 
+## 5. CYP2D6 TDI: a partial label-noise / boundary ceiling
+
+Recorded **before** attempting to beat it, so any later gain has an honest
+baseline. The LightGBM baseline reaches OOF MCC ≈ 0.35 on CYP3A4 but only ≈ 0.10
+on CYP2D6. This section asks whether that gap is intrinsic (label noise near the
+2-fold boundary) rather than purely a featurization problem.
+
+**Folds are not the cause.** Positives are well spread across the baseline
+scaffold folds for both isoforms:
+
+| fold | CYP2D6 n / pos / rate | CYP3A4 n / pos / rate |
+|---|---|---|
+| 0 | 299 / 72 / 24.1% | 467 / 147 / 31.5% |
+| 1 | 299 / 62 / 20.7% | 467 / 161 / 34.5% |
+| 2 | 299 / 68 / 22.7% | 467 / 157 / 33.6% |
+| 3 | 298 / 65 / 21.8% | 467 / 159 / 34.0% |
+| 4 | 298 / 57 / 19.1% | 466 / 140 / 30.0% |
+
+**2D6 positives sit closer to the 2-fold boundary and are measured more
+noisily.** The distance-to-flip is `δ − 0.301` for shift-positives (direct ≥ 4)
+and `TDI_arm − 4.301` for inferred positives (direct < 4). The shift-noise here
+is the same `√(σ_direct²+σ_TDI²)` estimator as §Noise estimates, restricted to
+each isoform's **true positives** (the population this question is about); the
+all-rows values in §Noise estimates differ because CYP3A4's negatives are
+noisier than its positives.
+
+| metric | CYP2D6 | CYP3A4 |
+|---|---|---|
+| true positives (shift / inferred) | 324 (273 / 51) | 764 (680 / 84) |
+| base rate | 21.7% | 32.7% |
+| shift-positives with δ in (0.301, 0.401] | 32.2% | 26.2% |
+| median margin-to-flip | 0.169 | 0.210 |
+| p25 margin-to-flip | 0.069 | 0.095 |
+| shift noise among positives | 0.126 | 0.075 |
+| positives within 1× noise of flipping | 38.6% | 19.2% |
+| positives within 2× noise of flipping | 61.4% | 38.0% |
+
+![Q5 boundary](figures/q5_boundary.png)
+
+**Honest framing.** CYP2D6 faces a label-noise / boundary ceiling that CYP3A4
+largely does not: its positives are both nearer the 2-fold cutoff and measured
+with roughly 1.7× the noise, so ~60% of them sit within 2σ of flipping to
+negative versus ~38% for CYP3A4 — a large share are effectively coin-flips at
+the label boundary even with perfect features. This is compounded by CYP2D6
+having less than half as many positives (324 vs 764) at a lower base rate. It is
+**not an absolute ceiling**: CYP3A4 reaches MCC 0.35 with its own boundary
+cases, and CYP2D6's small positive set leaves room for better features or more
+data to help. (Caveat on the estimator: measured over *all* both-arms rows
+instead of positives, the two isoforms' within-2σ fractions are comparable
+(~54% vs ~57%); the contrast above is specifically a property of the positive
+sets, which is the relevant population for a label-noise argument.)
+
+## 6. Baseline submission — OOF vs blind leaderboard
+
+To test whether scaffold-split OOF tracks the blind leaderboard while there is
+still time to correct course, the reference baseline is **prepared for
+submission** to the interim leaderboard. The upload itself is an interactive
+Space form tied to a HuggingFace account and public disclosure checkboxes
+(open-source code + report link, proprietary-data flag), so it is performed by a
+maintainer, not automated; the validated files and the numbers to compare are
+recorded here.
+
+- **Submission portal:** open. The challenge is a single continuous stage;
+  submissions run **2026-08-17 → 2026-11-03 (23:59 UTC)**. The **intermediate
+  leaderboard deadline is 2026-09-24 (23:59 UTC)** and the interim leaderboard
+  (a one-time full-test-set performance reveal) is released **2026-09-25**.
+- **Submission code commit:** `5d5dbdd` (files produced by `make baseline &&
+  make submit`: `submissions/regression.parquet`,
+  `submissions/classification.parquet`).
+- **Local scaffold-split OOF (the numbers being compared):**
+
+| isoform | OOF ST-RAE | OOF MAE | OOF MCC (TDI) |
+|---|---|---|---|
+| CYP1A2 | 0.526 ± 0.017 | 0.652 ± 0.013 | — |
+| CYP2C9 | 0.364 ± 0.019 | 0.489 ± 0.017 | — |
+| CYP2D6 | 0.617 ± 0.012 | 0.600 ± 0.044 | 0.097 ± 0.045 |
+| CYP3A4 | 0.298 ± 0.019 | 0.570 ± 0.023 | 0.347 ± 0.059 |
+
+- **Interim blind leaderboard result:** _to be filled from the 2026-09-25
+  reveal._ If the blind ST-RAE is materially worse than OOF — especially on the
+  isoforms where the baseline predictions are narrowest (see the mean-regression
+  check) — scaffold OOF is optimistic on this hit-expansion test set and the
+  training/eval protocol needs revisiting before 2026-11-03.
+
 ## Reproduce
 
-Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts.
-Everything above is derived solely from the public challenge dataset.
+Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts
+and `cyp.baseline`. Everything above is derived solely from the public challenge
+dataset.
