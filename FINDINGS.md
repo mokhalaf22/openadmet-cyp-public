@@ -230,6 +230,98 @@ compare are recorded here.
   check) — scaffold OOF is optimistic on this hit-expansion test set and the
   training/eval protocol needs revisiting before 2026-11-03.
 
+## 7. Narrow baseline predictions are shrinkage, not domain shift
+
+The baseline's predicted pIC50 spans are much narrower than the training
+targets. Comparing training targets to *blinded* predictions confounds two
+causes (shrinkage vs the test set being far from training); comparing **OOF
+predictions to blinded predictions from the same fitted models** separates them.
+
+| isoform | train target (std / IQR) | OOF pred (std / IQR) | blinded pred (std / IQR) |
+|---|---|---|---|
+| CYP1A2 | 1.03 / 1.00 | 0.36 / 0.45 | 0.40 / 0.58 |
+| CYP2C9 | 0.78 / 0.92 | 0.36 / 0.47 | 0.45 / 0.70 |
+| CYP2D6 | 0.92 / 0.83 | 0.23 / 0.30 | 0.22 / 0.25 |
+| CYP3A4 | 1.09 / 1.50 | 0.71 / 0.88 | 0.72 / 0.88 |
+
+OOF and blinded predictions are equally narrow on every isoform (within ~0.05
+std), and both are far narrower than the targets. The model reverts toward the
+mean **in-domain**, on held-out training compounds — the blinded set adds
+nothing to the narrowness. So this is **shrinkage, not domain shift**; the lever
+is regularization / the objective, not domain adaptation.
+
+**Similarity of the blinded set to training (ECFP4 Tanimoto, nearest neighbour).**
+Median NN similarity to the full training set is **0.587** (p25 0.543, p75
+0.639); every blinded compound has a neighbour above 0.4, but only **10%
+(76/750) clear 0.7**. Per-isoform (to each direct-present training subset)
+medians are 0.47–0.54 with 3–6% above 0.7.
+
+| target set | median NN Tanimoto | % > 0.7 |
+|---|---|---|
+| full training (6,145) | 0.587 | 10% |
+| CYP1A2 subset | 0.517 | 4% |
+| CYP2C9 subset | 0.518 | 3% |
+| CYP2D6 subset | 0.471 | 3% |
+| CYP3A4 subset | 0.538 | 6% |
+
+So the blinded set is **not** near-duplicate hit expansion off the training
+rows — the analogs are genuinely new, sitting in a neighbourhood the model has
+seen but not on top of it. This makes scaffold-split OOF a **more credible proxy
+for blind performance than originally assumed** (the announcement's "75 potent
+parents + nearest chemisimilars" framing implied much tighter overlap). The
+report's framing should follow this measurement rather than the announcement's
+description.
+
+**Leakage check.** 0 of 750 blinded `Molecule_Name`s appear in training.
+
+**Interpretive note (recorded, to be tested — not assumed).** Prediction width
+tracks predictive accuracy across isoforms: CYP3A4 is widest (blinded pred std
+0.72) and has the best OOF ST-RAE (0.298); CYP2D6 is narrowest (0.22) and has
+the worst (0.617), with CYP2C9 and CYP1A2 ordered in between on both axes
+simultaneously. That is exactly how an L1-fitted conditional median behaves when
+the features explain limited variance — it shrinks toward the median where it is
+uncertain. So shrinkage is **not assumed to be a defect**; it is a hypothesis to
+test against the metric (does widening the predictions improve ST-RAE?), not a
+bug to fix on sight. See §8.
+
+## 8. Regularization grid: widening predictions does not help the metric
+
+Testing the §7 hypothesis directly — refit the baseline regression with weaker
+regularization (`colsample_bytree` 0.5→0.8, trees 500→1500) and read off, per
+isoform, the OOF prediction std and OOF ST-RAE (mean ± fold std). Baseline is
+`(0.5, 500)`.
+
+| isoform | (colsample, trees) | OOF pred std | OOF ST-RAE (mean ± fold sd) |
+|---|---|---|---|
+| CYP1A2 | (0.5, 500) *baseline* | 0.359 | 0.526 ± 0.017 |
+| CYP1A2 | (0.5, 1500) | 0.393 | 0.524 ± 0.021 |
+| CYP1A2 | (0.8, 1500) | 0.398 | 0.529 ± 0.022 |
+| CYP2C9 | (0.5, 500) *baseline* | 0.361 | 0.364 ± 0.019 |
+| CYP2C9 | (0.5, 1500) | 0.385 | 0.361 ± 0.020 |
+| CYP2C9 | (0.8, 1500) | 0.395 | 0.362 ± 0.020 |
+| CYP2D6 | (0.5, 500) *baseline* | 0.228 | 0.617 ± 0.012 |
+| CYP2D6 | (0.5, 1500) | 0.241 | 0.618 ± 0.014 |
+| CYP2D6 | (0.8, 1500) | 0.248 | 0.618 ± 0.010 |
+| CYP3A4 | (0.5, 500) *baseline* | 0.712 | 0.298 ± 0.019 |
+| CYP3A4 | (0.5, 1500) | 0.743 | 0.295 ± 0.018 |
+| CYP3A4 | (0.8, 1500) | 0.752 | 0.296 ± 0.017 |
+
+(The `(0.8, 500)` cell is omitted for brevity; it sits between the rows shown and
+changes nothing.)
+
+Weaker regularization does widen the predictions — OOF pred std rises ~0.02–0.04
+per isoform — but **ST-RAE is flat**: every setting is within fold-to-fold
+variance of the baseline on every isoform. The largest nominal move is CYP3A4
+(0.298 → 0.295 at 1500 trees), 0.003 against a ±0.018 fold std, i.e. noise.
+
+**Conclusion.** The shrinkage is not a regularization defect. Consistent with §7,
+these are L1 conditional-median predictions shrinking where the features explain
+limited variance; forcing them wider neither helps nor hurts the metric. So the
+regularization lever is exhausted — the submission is **unchanged** (no ST-RAE
+improvement beyond fold variance, per the decision rule). Gains will have to come
+from better signal (features/representation) or the interval-hinge two-head
+objective, not from de-shrinking a median regressor.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts
