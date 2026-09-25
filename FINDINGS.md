@@ -516,13 +516,17 @@ scaffold folds.
 | ridge (ref) | 0.590 | 0.387 | 0.676 | 0.304 | 0.489 | |
 | LightGBM (ref) | 0.535 | 0.362 | 0.612 | 0.297 | 0.451 | |
 
-**CYP3A4 does not reach LightGBM parity.** It plateaus at ~0.33 across every
-epoch/width setting — never near LightGBM's 0.297. The tuned D-MPNN beats LightGBM
-on the other three isoforms (CYP2D6 by a clear margin, 0.579 vs 0.612) but CYP3A4
-is a persistent ~0.03 gap. Its fold std is lowest at 50 epochs (0.024, down from
+**CYP3A4 does not reach LightGBM parity — and it is GBM-favoured, not
+undertrained.** It plateaus at ~0.33 across *every* epoch/width setting (50→300
+epochs, d_h 200→400) — never near LightGBM's 0.297. Because the plateau is flat in
+both training budget and capacity, the gap is not undertraining or
+under-parameterization: a D-MPNN over ECFP-equivalent graph features simply
+represents CYP3A4 worse than the GBM does here. The tuned D-MPNN beats LightGBM on
+the other three isoforms (CYP2D6 by a clear margin, 0.579 vs 0.612) but CYP3A4 is
+a persistent ~0.03 gap. Its fold std is lowest at 50 epochs (0.024, down from
 phase-1's 0.056) and rises to ~0.04 at the mean-optimal higher-epoch configs — a
 bias/variance trade, not a clean win. So D-MPNN's edge is isoform-specific;
-CYP3A4 still favours the GBM.
+CYP3A4 still favours the GBM (a per-isoform blend candidate for the final model).
 
 **Seed ensemble of the best config (`dh200_ep300`, 3 seeds):**
 
@@ -542,11 +546,21 @@ single-run grid numbers too precisely. **Phase-2 rule: a switch must move macro 
 more than ~0.004–0.005, confirmed by seed ensembling, before it counts** (cf. the
 §12 reused-folds note). Any smaller "improvement" is noise on these folds.
 
+**Infrastructure note.** These background runs were killed repeatedly (three
+times, around 40–50 min in), so the harness was made **checkpointed and
+resumable**: MolGraphs cached once; the grid checkpoints each config to JSON and
+skips finished ones on rerun; the seed ensemble caches each seed's OOF to a
+`.npy`. No work was lost across the kills, and every number above is reproducible
+by re-running the phased commands.
+
 **Decision for phase 2.** Adopt the shared D-MPNN (`dh200_ep300`) as the encoder
-and test the loss switches on it, judging deltas against the ~0.004 floor. Keep
-LightGBM as the external reference — and note CYP3A4 stays GBM-favoured, so a
-per-isoform D-MPNN/LightGBM blend is a candidate for the final model regardless of
-what the loss switches do.
+and test the loss switches on it, judging deltas against the ~0.004–0.005
+seed-confirmed floor. **Every phase-2 config is evaluated at the same 3-seed
+ensemble level as the control** (the ensemble beats single seeds by ~0.008 macro,
+twice the floor, so mixing levels would measure ensembling and mislabel it a
+switch effect). Keep LightGBM as the external reference; CYP3A4 stays
+GBM-favoured, so a per-isoform D-MPNN/LightGBM blend is queued as the final step,
+after the loss switches settle.
 
 ## Reproduce
 
