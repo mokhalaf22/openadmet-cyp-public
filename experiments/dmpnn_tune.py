@@ -137,8 +137,16 @@ if __name__=="__main__":
     elif phase=="ensemble":
         e,d=int(sys.argv[2]),int(sys.argv[3]); oofs=[]; seeds=[0,1,2]; per_seed=[]
         for s in seeds:
-            per,oof=run_config(d,e,seed=s); oofs.append(oof)
-            m=float(np.mean([per[i][0] for i in ISOS])); per_seed.append(m); print(f"  seed {s} macro={m:.3f}",flush=True)
+            npy=f"experiments/ens_oof_dh{d}_ep{e}_s{s}.npy"
+            try:
+                oof=np.load(npy); print(f"  seed {s}: loaded cached OOF",flush=True)
+            except Exception:
+                _,oof=run_config(d,e,seed=s); np.save(npy,oof); print(f"  seed {s}: computed + cached",flush=True)
+            oofs.append(oof)
+            sm=[]
+            for j in range(4):
+                va=np.where((GFOLD>=0)&M[:,j])[0]; sm.append(np.mean([strae(oof[np.where((GFOLD==f)&M[:,j])[0],j],LO[np.where((GFOLD==f)&M[:,j])[0],j],HI[np.where((GFOLD==f)&M[:,j])[0],j],Y[np.where((GFOLD==f)&M[:,j])[0],j]) for f in range(NF)]))
+            m=float(np.mean(sm)); per_seed.append(m); print(f"  seed {s} macro={m:.3f}",flush=True)
         ens=np.nanmean(oofs,axis=0); per={}
         for j,iso in enumerate(ISOS):
             sr=[strae(ens[np.where((GFOLD==f)&M[:,j])[0],j],LO[np.where((GFOLD==f)&M[:,j])[0],j],HI[np.where((GFOLD==f)&M[:,j])[0],j],Y[np.where((GFOLD==f)&M[:,j])[0],j]) for f in range(NF)]
