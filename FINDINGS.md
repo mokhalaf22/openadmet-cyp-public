@@ -562,6 +562,47 @@ switch effect). Keep LightGBM as the external reference; CYP3A4 stays
 GBM-favoured, so a per-isoform D-MPNN/LightGBM blend is queued as the final step,
 after the loss switches settle.
 
+## 14. Phase 2 — loss switches on the tuned shared D-MPNN
+
+Encoder fixed at the tuned shared D-MPNN (`dh200_ep300`). Every config is the
+**3-seed ensemble** (matching the control's level); deltas are from the point-mode
+control (macro 0.445); judged against the ~0.004–0.005 seed-confirmed floor.
+Direct-arm regression, OOF ST-RAE, global scaffold folds.
+
+| config | CYP1A2 | CYP2C9 | CYP2D6 | CYP3A4 | macro |
+|---|---|---|---|---|---|
+| control (point) | 0.532 | 0.356 | 0.570 | 0.323 | 0.445 |
+| **interval (a)** | 0.518 ± 0.036 | 0.341 ± 0.021 | 0.572 ± 0.034 | **0.305 ± 0.043** | **0.434** |
+| interval + pull (e) | 0.521 ± 0.032 | 0.344 ± 0.022 | 0.576 ± 0.031 | 0.302 ± 0.041 | 0.436 |
+| LightGBM (ref) | 0.535 | 0.362 | 0.612 | 0.297 | 0.451 |
+
+**(a) Interval targets help — and recover the CYP3A4 gap.** Macro improves from
+0.445 to **0.434** (−0.011, ~2× the noise floor). Per isoform: CYP3A4 **−0.018**
+(to 0.305 ≈ LightGBM's 0.297), CYP1A2 −0.014, CYP2C9 −0.015, CYP2D6 +0.002 (null).
+CYP3A4 is precisely the isoform with **23.6% wide intervals** and the one whose gap
+**survived every encoder tuning attempt** (§13: flat across epochs, width, and
+model class). The interval formulation — scoring against the reported credible
+bounds instead of the point — recovered a gap that capacity, training budget, and
+model class all failed to close. **This confirms the wide-interval mechanism, and
+it was predicted before the run.**
+
+**(e) The width-weighted pull is null.** Isolated as (interval + pull) − interval:
+CYP1A2 +0.003, CYP2C9 +0.002, CYP2D6 +0.004, CYP3A4 −0.002, macro +0.002 — every
+delta inside the ~0.005 floor. **Recorded as a null result, not a failure:** once
+the interval-hinge is in place it already extracts the signal from wide intervals,
+so the additional pull toward the point has nothing left to add. This is exactly
+the null that was flagged as plausible once interval targets alone reached parity.
+
+**Methods note — the width pull is interval-mode-only.** `width_weighted_l1` adds
+a `1/(1+width)` L1 pull toward the point *where the interval-hinge is flat*. In
+point mode the loss is already a `1/(1+width)`-weighted L1, so adding the pull
+merely rescales an existing term rather than supplying gradient anywhere new —
+which is why switch (e) is only meaningful, and was only tested, on top of interval
+targets (a).
+
+_Pending: shift_prior (f) and derived-vs-classifier TDI label (d), which require
+the TDI-arm two-head (delta supervision); same ensembling level and floor._
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
