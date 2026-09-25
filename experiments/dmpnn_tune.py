@@ -18,7 +18,12 @@ from rdkit import Chem, RDLogger
 from cyp.splits import scaffold_folds
 from cyp.losses import st_rae as st_rae_torch
 sys.stdout.reconfigure(line_buffering=True)
-RDLogger.DisableLog("rdApp.*"); torch.set_num_threads(1)
+RDLogger.DisableLog("rdApp.*")
+# Multi-threaded for speed on the M4 Pro. This is a tuning grid, so exact bitwise
+# reproducibility is traded for ~throughput; the 3-seed ensemble quantifies the
+# resulting noise. (cyp.baseline / cyp.twohead keep set_num_threads(1) for
+# reproducible submissions.)
+torch.set_num_threads(10)
 D="data/cyp-challenge-train-test/"; ISOS=["CYP1A2","CYP2C9","CYP2D6","CYP3A4"]; NF=5
 RESULTS="experiments/dmpnn_tune_results.json"
 GRID=[(e,d) for d in (200,400) for e in (50,150,300)]   # 6 configs
