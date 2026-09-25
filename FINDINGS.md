@@ -480,10 +480,21 @@ fold std (0.056), consistent with undertraining there — so these are a **floor
 for D-MPNN, not its best. Per-isoform D-MPNN was not run (shared is both stronger
 and the cleaner encoder-swap comparison against shared-ecfp).
 
+**Each lever ≈ −0.03 macro.** Multi-task sharing (b, −0.032) and the learned
+D-MPNN representation (c, a further −0.033) each contribute roughly −0.03 macro
+ST-RAE independently, stacking to −0.065 from the control.
+
+**Methodological note — reused folds.** From here we make repeated modelling
+decisions against the *same* scaffold folds, so the folds double as a selection
+set and each comparison spends a little of their information. Effects within
+fold-to-fold variance (~0.02–0.05 here) should be treated with suspicion and
+confirmed by seed ensembling before they are believed. Phase-2 deltas are judged
+against the seed-ensemble spread established in §13, not against zero.
+
 **Decision.** The representation lever works, so the rest of the ablation is
-worth running as planned: adopt the shared D-MPNN representation and test the
-loss switches (interval targets, width-weighted pull, shift_prior), then the
-derived-vs-classifier TDI label. Stopped here per plan for review.
+worth running as planned: tune the shared D-MPNN encoder (§13), then test the
+loss switches (interval targets, width-weighted pull, shift_prior) and the
+derived-vs-classifier TDI label on it. Stopped here per plan for review.
 
 ## Reproduce
 
