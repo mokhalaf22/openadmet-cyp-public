@@ -199,10 +199,10 @@ sets, which is the relevant population for a label-noise argument.)
 ## 6. Baseline submission — OOF vs blind leaderboard
 
 To test whether scaffold-split OOF tracks the blind leaderboard while there is
-still time to correct course, the reference baseline — blinded predictions
-**generated from commit `5d5dbdd`** via `make baseline && make submit` — is
-**submitted to the interim leaderboard**, so the OOF-vs-blind comparison on
-2026-09-25 is anchored to one specific model. The upload itself is an
+still time to correct course, the reference baseline is **submitted to the
+interim leaderboard**, so the OOF-vs-blind comparison is anchored to known
+models. The two tracks are separate files and have diverged, so each carries its
+**own commit anchor** — they cannot share one. The upload itself is an
 interactive Space form tied to a HuggingFace account and public disclosure
 checkboxes (open-source code + report link, proprietary-data flag), so it is
 performed by a maintainer, not automated; the validated files and the numbers to
@@ -212,9 +212,13 @@ compare are recorded here.
   submissions run **2026-08-17 → 2026-11-03 (23:59 UTC)**. The **intermediate
   leaderboard deadline is 2026-09-24 (23:59 UTC)** and the interim leaderboard
   (a one-time full-test-set performance reveal) is released **2026-09-25**.
-- **Submission code commit:** `5d5dbdd` (files produced by `make baseline &&
-  make submit`: `submissions/regression.parquet`,
-  `submissions/classification.parquet`).
+- **Submission code anchors (per track):**
+  - **Regression** — commit **`5d5dbdd`** (`submissions/regression.parquet`),
+    unchanged since the baseline.
+  - **Classification** — commit **`75fe72e`** (`submissions/classification.parquet`),
+    which applies the CYP2D6 decision-threshold override 0.10 → 0.30 (§10). The
+    regression file is byte-identical to the `5d5dbdd` version; only the
+    classification file changed.
 - **Local scaffold-split OOF (the numbers being compared):**
 
 | isoform | OOF ST-RAE | OOF MAE | OOF MCC (TDI) |
