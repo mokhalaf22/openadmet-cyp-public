@@ -496,6 +496,58 @@ worth running as planned: tune the shared D-MPNN encoder (§13), then test the
 loss switches (interval targets, width-weighted pull, shift_prior) and the
 derived-vs-classifier TDI label on it. Stopped here per plan for review.
 
+## 13. D-MPNN tuning and the seed-noise floor
+
+Before layering loss switches on the shared D-MPNN, a fixed 6-config grid (decided
+in advance): epochs {50, 150, 300} × d_h {200, 400}, depth fixed at 3, early
+stopping (patience 20) on a held-out **15% slice of each fold's training rows**,
+never the eval fold. MolGraphs cached once; run multi-threaded for speed (so not
+bitwise-reproducible — which is *why* we then seed-ensemble). OOF ST-RAE, global
+scaffold folds.
+
+| config | CYP1A2 | CYP2C9 | CYP2D6 | CYP3A4 | macro | stop@ |
+|---|---|---|---|---|---|---|
+| dh200_ep50 | 0.551 | 0.370 | 0.609 | 0.359 ± 0.024 | 0.472 | 48 |
+| dh200_ep150 | 0.539 | 0.367 | 0.594 | 0.330 ± 0.043 | 0.458 | 110 |
+| **dh200_ep300** | 0.533 | 0.358 | 0.579 | 0.331 ± 0.038 | **0.450** | 93 |
+| dh400_ep50 | 0.543 | 0.357 | 0.593 | 0.354 ± 0.032 | 0.462 | 48 |
+| dh400_ep150 | 0.532 | 0.351 | 0.585 | 0.337 ± 0.044 | 0.451 | 88 |
+| dh400_ep300 | 0.532 | 0.350 | 0.585 | 0.334 ± 0.041 | 0.450 | 88 |
+| ridge (ref) | 0.590 | 0.387 | 0.676 | 0.304 | 0.489 | |
+| LightGBM (ref) | 0.535 | 0.362 | 0.612 | 0.297 | 0.451 | |
+
+**CYP3A4 does not reach LightGBM parity.** It plateaus at ~0.33 across every
+epoch/width setting — never near LightGBM's 0.297. The tuned D-MPNN beats LightGBM
+on the other three isoforms (CYP2D6 by a clear margin, 0.579 vs 0.612) but CYP3A4
+is a persistent ~0.03 gap. Its fold std is lowest at 50 epochs (0.024, down from
+phase-1's 0.056) and rises to ~0.04 at the mean-optimal higher-epoch configs — a
+bias/variance trade, not a clean win. So D-MPNN's edge is isoform-specific;
+CYP3A4 still favours the GBM.
+
+**Seed ensemble of the best config (`dh200_ep300`, 3 seeds):**
+
+| | CYP1A2 | CYP2C9 | CYP2D6 | CYP3A4 | macro |
+|---|---|---|---|---|---|
+| 3-seed ensemble | 0.532 ± 0.028 | 0.356 ± 0.025 | 0.570 ± 0.030 | 0.323 ± 0.042 | **0.445** |
+| LightGBM (ref) | 0.535 | 0.362 | 0.612 | 0.297 | 0.451 |
+
+Per-seed macro: **0.455 / 0.451 / 0.455 → spread 0.004**. The 3-seed ensemble
+(0.445) beats every single seed and clears LightGBM's macro (0.451), driven by
+CYP2D6.
+
+**The seed-noise floor is ~0.004 macro.** Nominally identical reruns vary by that
+much (multi-threaded non-determinism), and the grid's single-run `dh200_ep300`
+= 0.450 sits below its own seed reruns (~0.453 typical) — a reminder not to read
+single-run grid numbers too precisely. **Phase-2 rule: a switch must move macro by
+more than ~0.004–0.005, confirmed by seed ensembling, before it counts** (cf. the
+§12 reused-folds note). Any smaller "improvement" is noise on these folds.
+
+**Decision for phase 2.** Adopt the shared D-MPNN (`dh200_ep300`) as the encoder
+and test the loss switches on it, judging deltas against the ~0.004 floor. Keep
+LightGBM as the external reference — and note CYP3A4 stays GBM-favoured, so a
+per-isoform D-MPNN/LightGBM blend is a candidate for the final model regardless of
+what the loss switches do.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
