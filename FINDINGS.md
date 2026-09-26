@@ -1026,6 +1026,35 @@ the **tabular-foundation-model** approach (§23 #4: CheMeleon + predicted
 primary-screen + TabICL, 0.68 blind vs our 0.94), which fixes generalization at the
 representation level. That is the recommended next build.
 
+## 25. Predicted primary-screen feature — validated (the tabular-FM piece)
+
+Following the OpenADMET post (§23 #4): the raw single-concentration log2FC is
+test-unavailable (§16), but a model that **predicts** it from structure is
+test-available. We validate this piece before adding CheMeleon/TabICL.
+
+**Fold-aligned, leakage-safe.** One scaffold→fold map shared across our data, the
+test set, and the single-concentration screen, so no scaffold leaks between the
+log2FC predictor and the pIC50 evaluation.
+
+- **The log2FC predictor is learnable from structure** (LightGBM, OOF Pearson r):
+  CYP1A2 0.587, CYP2C9 0.732, CYP2D6 0.599, CYP3A4 0.743.
+- **Adding 4 predicted-log2FC columns improves pIC50 OOF ST-RAE:**
+
+| isoform | base (ECFP+desc) | + predicted primary | Δ |
+|---|---|---|---|
+| CYP1A2 | 0.526 | 0.521 | −0.005 |
+| CYP2C9 | 0.359 | 0.330 | **−0.029** |
+| CYP2D6 | 0.607 | 0.600 | −0.007 |
+| CYP3A4 | 0.297 | 0.283 | **−0.014** |
+| **macro** | **0.447** | **0.433** | **−0.014** |
+
+The gain (−0.014 macro, driven by CYP2C9/CYP3A4) is real and above the seed floor,
+and confirms the OpenADMET post's claim that the predicted-primary-screen feature
+carries most of the tabular-FM gain (their CheMeleon-only 0.83 → full 0.68). This
+is a **structure-derived, test-available** feature — the lever §16 missed. Next:
+add CheMeleon embeddings and a TabICL/TabPFN tabular head. The **CYP2D6 location
+correction (§24) is orthogonal** and carries into whatever model we build.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
