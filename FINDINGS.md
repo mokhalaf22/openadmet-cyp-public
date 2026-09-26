@@ -1105,13 +1105,40 @@ made lazy; each stage cached to `.npz`), and `experiments/tabfm_tabicl.py` runs
 TabICL in a clean process importing only numpy/pandas/torch/sklearn/tabicl, with
 per-fit checkpointing (`tabfm_ck.npz`) so a kill loses at most one ~40 s fit.
 
-**Final regression submission.** Built from the winner (LightGBM +
-predicted-primary-screen) via `experiments/final_regression.py`: train per isoform
-on all present rows with `[base | 4 predicted-log2FC]`, predict the 750 blinded
-compounds, apply the validated **CYP2D6 −0.5 location shift** (§24), write through
+### 26a. The predicted-primary feature on the D-MPNN path — the real winner
+
+§25 tested the predicted-primary feature only on **LightGBM**; our best base was
+the **D-MPNN interval** model (§17). And §17's 0.427 (phase2 `GFOLD` folds) and
+§25's 0.433 (tabfm union folds) were on **different scaffold-fold partitions**, so
+not strictly comparable. We rebuilt all four candidates on one fold system
+(`GFOLD`, phase2's exact folds; predicted-log2FC recomputed GFOLD-aligned and
+leakage-safe in `experiments/plog_gfold.py`; feature added to the D-MPNN by
+concatenating the 4 values onto the aggregated graph embedding, standardized,
+`experiments/dmpnn_primary.py`):
+
+| model | base | + predicted-primary | Δ |
+|---|---|---|---|
+| LightGBM | 0.451 | 0.436 | −0.015 |
+| **D-MPNN interval** | 0.434 | **0.415** | **−0.020** |
+
+Per-isoform D-MPNN+primary: CYP1A2 0.509, CYP2C9 0.309, CYP2D6 0.571, CYP3A4
+0.269. **The predicted-primary feature helps the D-MPNN more than LightGBM**
+(−0.020 vs −0.015), and D-MPNN+primary (0.415) is the best regression model we
+have — below the old D-MPNN+CYP3A4-blend (0.427, §17) and LightGBM+primary (0.436).
+A CYP3A4 blend of D-MPNN+primary with LightGBM+primary tops out at w=0.75 →
+CYP3A4 0.267 (macro 0.414), only 0.001 over pure D-MPNN+primary — below the seed
+floor, so we keep **pure D-MPNN+primary** (`experiments/blend_check.py`).
+
+**Final regression submission.** Built from the winner (**D-MPNN interval +
+predicted-primary**, 0.415 macro OOF). Blinded predictions from
+`experiments/gen_blinded_primary.py` (all-data, 3-seed ensemble, GFOLD-OOF
+predicted-log2FC on train / full-model on test); `experiments/final_regression.py`
+applies the validated **CYP2D6 −0.5 location shift** (§24) and writes through
 `cyp.submit.write_submission` → `submissions/regression_final.parquet` (750 rows,
-schema-validated, no NaN; CYP2D6 test mean 4.28 vs train 4.78). The CYP2D6 shift
-is orthogonal and carries onto whichever model won.
+schema-validated, no NaN). The CYP2D6 shift is orthogonal and carries onto the
+winner. **Compression is not fixed** (per-isoform predicted std is 0.46/0.77/0.29/
+0.72× the training-target std) — the CYP2D6 shift corrects *location*, not *spread*;
+dispersion expansion remains an unvalidated gamble (§22/§24), so it was not applied.
 
 ## Reproduce
 
