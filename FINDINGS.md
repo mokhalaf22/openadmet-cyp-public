@@ -688,6 +688,37 @@ TDI); also training-only.
 feasible use is as auxiliary multi-task *training targets*, but the signal
 analysis implies marginal upside on a discrimination-limited task (§5, §10, §15).
 
+## 17. Final regression model — CYP3A4 D-MPNN/LightGBM blend
+
+Recommended regression model: shared D-MPNN with **interval targets** (§14) for
+CYP1A2/CYP2C9/CYP2D6, and a **50/50 blend of the D-MPNN and LightGBM** on CYP3A4
+(the GBM-favoured isoform, §13). All D-MPNN numbers are the 3-seed ensemble; both
+components use the same global scaffold folds.
+
+CYP3A4 blend weight sweep (w = D-MPNN weight, OOF ST-RAE):
+
+| w | 0.00 (LGBM) | 0.25 | 0.50 | 0.75 | 1.00 (D-MPNN) |
+|---|---|---|---|---|---|
+| CYP3A4 | 0.297 | 0.280 | **0.276** | 0.284 | 0.305 |
+
+The 50/50 blend (0.276) **beats both components** (LightGBM 0.297, D-MPNN 0.305) —
+the two learners make different errors on CYP3A4, so averaging helps.
+
+| isoform | final OOF ST-RAE | source |
+|---|---|---|
+| CYP1A2 | 0.518 ± 0.036 | D-MPNN interval |
+| CYP2C9 | 0.341 ± 0.021 | D-MPNN interval |
+| CYP2D6 | 0.572 ± 0.034 | D-MPNN interval |
+| CYP3A4 | 0.276 ± 0.027 | D-MPNN/LightGBM 50/50 blend |
+| **macro** | **0.427** | |
+
+vs D-MPNN-only interval macro 0.434, LightGBM 0.451. The blend buys −0.007 macro
+(just above the ~0.004 floor), driven by CYP3A4 (−0.029 vs D-MPNN, −0.021 vs LGBM).
+Against the interim leaderboard (top 0.3814, rank-11 0.4404), this OOF macro of
+**0.427** would sit inside the top ~11 on the regression board — but it is OOF, not
+blind; §7 argues scaffold OOF is a credible proxy here, to be confirmed against a
+submission. TDI track: use the classifier head (§15), not the derived label.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
