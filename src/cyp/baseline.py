@@ -45,8 +45,10 @@ TDI_ISOFORMS = ["CYP3A4", "CYP2D6"]  # only these two are scored for TDI
 # decision function where the predicted positive count is highly sensitive to any
 # shift in the blind score distribution; 0.30 gives the same simulated MCC with
 # less variance, and at the ~17% estimated blind prevalence the sweep favours it.
-# Variance reduction, not a score grab. See FINDINGS §10.
-TDI_THRESHOLD_OVERRIDE = {"CYP2D6": 0.30}
+# Variance reduction, not a score grab. See FINDINGS §10. CYP3A4 raised 0.35->0.45
+# after the interim blind result (precision 0.318 = over-calling; §22): a modest
+# reduction of the positive rate (40%->33%) at a small OOF-MCC cost.
+TDI_THRESHOLD_OVERRIDE = {"CYP2D6": 0.30, "CYP3A4": 0.45}
 ID_COL = "Molecule_Name"
 SMILES_COL = "SMILES"
 
