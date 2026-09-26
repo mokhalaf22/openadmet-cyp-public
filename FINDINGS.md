@@ -784,7 +784,24 @@ AID 1851 is a large but **chemically distant** source: it barely overlaps our
 data and the blinded compounds sit far from it (median NN 0.368, vs 0.587 to our
 own training in §7). So it can only help as encoder regularization from ~16.5k
 extra molecules; direct transfer to the hit-expansion blinded series is uncertain.
-Aux-head training result recorded below once run.
+
+**Aux-head training result: it hurts both tracks (negative).** Two-head D-MPNN +
+5 Veith aux heads (3-seed ensemble), vs th_clf (no aux):
+
+| metric | th_clf (no aux) | aux_on |
+|---|---|---|
+| direct macro ST-RAE | 0.433 | **0.448** |
+| clf MCC CYP2D6 | 0.125 | **0.065** |
+| clf MCC CYP3A4 | 0.336 | **0.310** |
+
+The auxiliary Veith objective *degrades* both the regression and the classifier —
+the chemically-distant qHTS task competes for encoder capacity and pulls the
+representation away from our DRC chemistry, exactly the failure the overlap
+analysis predicted. **Lever B is negative; AID 1851 is not used in the final
+model.** (A much smaller aux weight or a distance-filtered subset might avoid the
+harm, but with median NN 0.368 to the blinded set the upside was never large.)
+The external source is disclosed here regardless; the proprietary-data flag stays
+unchecked (PubChem is public).
 
 ## Reproduce
 
