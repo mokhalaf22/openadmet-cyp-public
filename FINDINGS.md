@@ -603,6 +603,57 @@ targets (a).
 _Pending: shift_prior (f) and derived-vs-classifier TDI label (d), which require
 the TDI-arm two-head (delta supervision); same ensembling level and floor._
 
+## 15. Phase 2 (cont.) — TDI-arm switches: shift_prior (f), derived vs classifier (d)
+
+Two-head shared D-MPNN: mu against the direct interval, mu+delta against the
+TDI-condition interval (delta = softplus ≥ 0), which trains delta. 3-seed
+ensemble, global folds. Metrics: direct-arm macro ST-RAE, **derived** TDI MCC via
+`tdi_label_from_arms(mu, delta)`, and a **classifier-head** MCC. Baseline
+reference = the LightGBM classifier (CYP2D6 0.097, CYP3A4 0.347).
+
+| config | direct ST-RAE (macro) | derived MCC 2D6 | derived MCC 3A4 | clf MCC 2D6 | clf MCC 3A4 |
+|---|---|---|---|---|---|
+| th_sp0 (sp=0) | 0.433 | 0.000 | 0.255 | — | — |
+| th_sp5e-3 | 0.433 | 0.000 | 0.270 | — | — |
+| th_sp2e-2 | 0.435 | 0.000 | 0.263 | — | — |
+| th_clf (sp=5e-3 + classifier head) | 0.433 | 0.031 | 0.337 | **0.125** | 0.336 |
+| baseline LightGBM classifier | — | — | — | 0.097 | 0.347 |
+
+Adding the TDI arm leaves direct-arm regression unchanged (0.433 ≈ the §14
+interval macro 0.434), so the two-head structure is free on the regression side.
+
+**(f) shift_prior is inert.** Across sp ∈ {0, 5e-3, 2e-2}: direct ST-RAE is flat
+(0.433–0.435, within noise) and derived MCC barely moves (CYP2D6 stuck at 0.000,
+CYP3A4 0.255–0.270). It resolves the mu/delta split but that split touches neither
+the directly-supervised mu (regression) nor — decisively — the CYP2D6 label. Not a
+useful lever.
+
+**(d) A separate classifier beats the derived label — the thesis does not hold
+for TDI.** The classifier head reaches CYP2D6 MCC **0.125** vs the derived label's
+**0.031** (and beats even baseline LightGBM's 0.097); on CYP3A4 they tie
+(0.336 vs 0.337 vs baseline 0.347). The derived label **collapses on CYP2D6**
+(MCC ≈ 0): it is a deterministic function of two *smooth* regressions, and cannot
+reproduce the sharp 0.301 shift-threshold crossings that CYP2D6's
+boundary-dominated positives require (§5). A direct classifier places its own
+decision boundary and wins. This is consistent with §5 (CYP2D6 label-noise
+ceiling) and §10 (a discrimination problem, not calibration).
+
+(Aside: adding the classifier head as an auxiliary objective *also* lifted the
+derived label — CYP2D6 0.000 → 0.031, CYP3A4 0.270 → 0.337 — by regularizing the
+shared trunk. But the classifier's own output still wins, so this is a reason to
+keep the head, not to rely on the derived label.)
+
+**Phase-2 conclusion / recommended architecture.** The censored two-head
+**interval regression** is the real result: interval targets recovered the
+CYP3A4 gap (§14) and the tuned D-MPNN beats LightGBM on macro ST-RAE. But the
+"derived TDI label for free" idea — the headline innovation in CLAUDE.md's
+modelling section — **does not beat a direct classifier** and should be dropped
+for the scored TDI track. Recommended final model: shared D-MPNN with **interval
+targets** for the four direct pIC50s (blend with LightGBM on CYP3A4, which stays
+GBM-favoured), and a **classifier head** (or LightGBM) for the CYP2D6/CYP3A4 TDI
+calls. The report's innovation story is the interval/censored regression, not the
+derived label — an honest negative result on the latter.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
