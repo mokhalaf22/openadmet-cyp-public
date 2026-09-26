@@ -798,10 +798,23 @@ The auxiliary Veith objective *degrades* both the regression and the classifier 
 the chemically-distant qHTS task competes for encoder capacity and pulls the
 representation away from our DRC chemistry, exactly the failure the overlap
 analysis predicted. **Lever B is negative; AID 1851 is not used in the final
-model.** (A much smaller aux weight or a distance-filtered subset might avoid the
-harm, but with median NN 0.368 to the blinded set the upside was never large.)
-The external source is disclosed here regardless; the proprietary-data flag stays
-unchecked (PubChem is public).
+model.** The external source is disclosed here regardless; the proprietary-data
+flag stays unchecked (PubChem is public).
+
+Two limitations of this specific negative result, stated so it is not
+over-claimed:
+- **(a) The clean table excluded the 199 compounds overlapping our train/blinded
+  set.** That exclusion was a leakage-safety *choice*, not a necessity — and it
+  may have removed exactly the shared molecules that could anchor the two assay
+  scales (Veith qHTS vs our DRC pIC50) to each other. Keeping them (with careful
+  fold-aware masking) is untested.
+- **(b) Aux subsampling was per-epoch** (a fresh random ~n-row draw each epoch),
+  which adds run-to-run variance that was **not** re-measured against the
+  ~0.004–0.005 seed floor. The 3-seed ensemble absorbs some of it, but the aux
+  result's noise band is not separately characterised.
+
+Neither limitation plausibly flips a −0.015-to-−0.06 result, but both belong in
+the write-up as caveats on the strength of the negative.
 
 ## Reproduce
 
