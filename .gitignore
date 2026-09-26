@@ -16,6 +16,7 @@ submissions/
 
 # Experiment intermediates (large per-seed OOF arrays; results live in JSON)
 experiments/*.npy
+experiments/*.npz
 
 # Python
 __pycache__/

@@ -15,7 +15,7 @@ Per-seed OOF cached to .npy (resumable).
   python experiments/phase2b.py th_sp5e-3
   python experiments/phase2b.py report
 """
-import sys, json, copy
+import sys, json, copy, os
 import numpy as np, pandas as pd, torch, torch.nn as nn
 from rdkit import Chem, RDLogger
 from sklearn.metrics import matthews_corrcoef
@@ -76,12 +76,17 @@ def macro_direct_strae(mu_orig,rows):
         if m.sum(): vals.append(strae(mu_orig[m,j],LOd[rows,j][m],HId[rows,j][m],Yd[rows,j][m]))
     return float(np.mean(vals))
 
-def run_seed(cfg,seed):
+def run_seed(name,cfg,seed):
     mu_oof=np.full((len(df),4),np.nan); dl_oof=np.full((len(df),4),np.nan); clf_oof=np.full((len(df),2),np.nan)
     for f in range(NF):
+        va=np.where(GFOLD==f)[0]
+        ffile=f"experiments/p2b_{name}_s{seed}_f{f}.npz"
+        if os.path.exists(ffile):
+            z=np.load(ffile); mu_oof[va]=z["mu"]; dl_oof[va]=z["dl"]; clf_oof[va]=z["clf"]
+            print(f"  {name} s{seed} fold{f}: cached",flush=True); continue
         outer=np.where((GFOLD!=f)&(GFOLD>=0))[0]
         rng=np.random.RandomState(seed*100+f); iv=rng.permutation(len(outer))[:int(len(outer)*IVFRAC)]
-        iv_rows=outer[iv]; tr=np.setdiff1d(outer,iv_rows); va=np.where(GFOLD==f)[0]
+        iv_rows=outer[iv]; tr=np.setdiff1d(outer,iv_rows)
         ym=np.array([Yd[tr,j][Md[tr,j]].mean() for j in range(4)]); ys=np.array([Yd[tr,j][Md[tr,j]].std() or 1.0 for j in range(4)])
         dlo=np.nan_to_num((LOd-ym)/ys); dhi=np.nan_to_num((HId-ym)/ys)
         tlo=np.nan_to_num((LOt-ym)/ys); thi=np.nan_to_num((HIt-ym)/ys)
@@ -113,8 +118,9 @@ def run_seed(cfg,seed):
         with torch.no_grad():
             mv,dv,lv=m(bmg(va))
             mu_oof[va]=mv.numpy()*ys+ym; dl_oof[va]=dv.numpy()*ys   # delta in pIC50 units
-            if cfg["clf"]: clf_oof[va]=torch.sigmoid(lv).numpy()
-        print(f"  {cfg} s{seed} fold{f}: best@{best[2]+1}ep",flush=True)
+            clf_oof[va]=torch.sigmoid(lv).numpy() if cfg["clf"] else np.nan
+        np.savez(ffile, mu=mu_oof[va], dl=dl_oof[va], clf=clf_oof[va])
+        print(f"  {name} s{seed} fold{f}: best@{best[2]+1}ep",flush=True)
     return mu_oof,dl_oof,clf_oof
 
 def derived_mcc(mu,dl):
@@ -141,7 +147,7 @@ def ensemble(name):
         try:
             mu=np.load(base+"_mu.npy"); dl=np.load(base+"_dl.npy"); clf=np.load(base+"_clf.npy"); print(f"  {name} s{s}: cached",flush=True)
         except Exception:
-            mu,dl,clf=run_seed(cfg,s); np.save(base+"_mu.npy",mu); np.save(base+"_dl.npy",dl); np.save(base+"_clf.npy",clf); print(f"  {name} s{s}: computed",flush=True)
+            mu,dl,clf=run_seed(name,cfg,s); np.save(base+"_mu.npy",mu); np.save(base+"_dl.npy",dl); np.save(base+"_clf.npy",clf); print(f"  {name} s{s}: computed",flush=True)
         mus.append(mu); dls.append(dl); clfs.append(clf)
     mu=np.nanmean(mus,0); dl=np.nanmean(dls,0); clf=np.nanmean(clfs,0)
     # direct ST-RAE macro (ensemble)
