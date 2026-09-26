@@ -932,6 +932,82 @@ ST-RAE down from ~0.94, but it is leaderboard-informed and cannot be validated
 without a submission (and assumes the blind *mean* ≈ training mean; R² ≈ 0 leaves a
 possible mean offset uncorrected).
 
+## 23. Organizers' halfway update — reprioritization
+
+(Recorded after §22; the organizers' halfway post changes priorities.)
+
+1. **A model report is now MANDATORY** for the final submission or the entry is
+   not scored. `REPORT.md` exists but has **no public URL** — the repo has no git
+   remote. **This is the top-priority blocker** and requires pushing the repo to a
+   public host (a maintainer action).
+
+2. **CYP2D6 has a confirmed train/test target-space shift.** The test set was
+   built by hit expansion on **CYP3A4, CYP1A2, CYP2C9 only**; CYP2D6 hits were not
+   prioritized, so CYP2D6 test compounds are inherently **less potent** than
+   training. §7's Tanimoto check saw only *feature-space* shift (found none); it
+   could not see this *target-space* shift. Our CYP2D6 predictions center at
+   **4.70** (training-potent level, std 0.23); against a less-potent test this is a
+   **systematic over-prediction of ~+0.5 to +1.0 log** (if the test resembles the
+   training bottom 25–50%, mean 3.74–4.15). A pure location bias of ~1.0 alone
+   contributes ~0.9 to ST-RAE — so CYP2D6 is a **distribution-shift (location)**
+   problem, not just shrinkage.
+
+3. **Tiering.** TDI has **26 Tier-1 entries statistically indistinguishable down
+   to MCC 0.3406**; we are at 0.273 (rank 73) — closer to the pack than the rank
+   suggests, and our submission **predates the CYP2D6 0.30 threshold fix**.
+   Regression has **only one Tier-1 entry** — that track is genuinely separated,
+   and our rank-200 magnitude collapse is the real deficit.
+
+4. **Tabular-foundation-model lever (OpenADMET post) — worth implementing.**
+   CheMeleon embedding (2048→256 PCA) + **predicted primary-screen log2FC**
+   (a Chemprop model trained on the single-concentration screen) concatenated as
+   features, into a **TabICL/TabPFN** tabular model. Reported **0.68 blind
+   MA-ST-RAE** (their CheMeleon-only baseline 0.83; top competitors 0.43) — vs our
+   **0.94**. Crucially the primary-screen values are **predicted from structure**,
+   so they are **test-time available** — unlike the *raw* single-conc readout §16
+   ruled out. Assessment: **this is the single largest untested lever**; it
+   attacks the compression/generalization failure at the representation level, not
+   post-hoc. Recommended next implementation after the report URL is resolved.
+
+5. **The five published reports (briford, rasayan-labs, jeremy, stir_bar, 450nm)
+   remain inaccessible** — their report links are leaderboard-gated (private S3),
+   and their HF/GitHub profiles do not expose CYP writeups (rasayan-labs only has a
+   Tox21 model; the doctawho42 repo is a *different* participant's). Need the URLs.
+
+## 24. Regression correction: dispersion (gamble) + CYP2D6 location (validated)
+
+**Per-isoform dispersion on OOF hurts in-distribution** (variance-match to
+training std): CYP1A2 0.519→0.723, CYP2C9 0.339→0.403, CYP2D6 0.572→0.891,
+CYP3A4 0.305→0.366, Spearman preserved exactly. So expansion is **not
+OOF-validatable** — it only helps if the blind set is wider (§22), a
+leaderboard-informed gamble.
+
+**The CYP2D6 location correction IS validated**, on a simulated less-potent eval
+(subsample OOF CYP2D6 to its low-potency tail, mimicking the confirmed test
+shift):
+
+| simulated test | shift 0.0 | 0.3 | 0.5 | 0.7 | best |
+|---|---|---|---|---|---|
+| ~bottom 50% (mean 4.15) | 0.581 | **0.372** | 0.428 | 0.590 | −0.3 |
+| ~bottom 35% | 0.592 | 0.337 | **0.324** | 0.403 | −0.5 |
+| full OOF (no shift; sanity) | **0.572** | 0.662 | 0.829 | 1.047 | 0.0 |
+
+Shifting CYP2D6 predictions **down by ~0.3–0.5** cuts ST-RAE from ~0.58 to
+~0.32–0.37 on the shifted eval, and the sanity row correctly prefers **no** shift
+when there is no shift — so this is a genuine distribution-shift correction, not
+overfitting. Magnitude depends on how much less-potent the test truly is.
+
+**Built `submissions/regression_corrected_v2.parquet`:** dispersion (all isoforms,
+variance-match to training std) + **CYP2D6 location −0.5**. Post-correction:
+CYP1A2 mean 5.08/std 1.03, CYP2C9 4.93/0.78, CYP2D6 **4.20**/0.92, CYP3A4 4.66/1.09.
+
+**Recommendation.** The CYP2D6 location shift is the *confident* fix (validated);
+the dispersion is a *gamble* (helps only if blind wider). But regression has only
+one Tier-1 entry (§23) — post-hoc corrections cannot bridge that. The real lever is
+the **tabular-foundation-model** approach (§23 #4: CheMeleon + predicted
+primary-screen + TabICL, 0.68 blind vs our 0.94), which fixes generalization at the
+representation level. That is the recommended next build.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,

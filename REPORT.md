@@ -8,17 +8,27 @@ labels are withheld). Full derivations, tables, and plots are in
 ## TL;DR
 
 - **Regression (direct pIC50, 4 isoforms).** Shared D-MPNN with an
-  **interval-hinge** loss for CYP1A2/CYP2C9/CYP2D6, and a **D-MPNN/LightGBM blend**
-  for CYP3A4. Macro OOF ST-RAE **0.427** (vs a LightGBM reference of 0.451; the
-  interim leaderboard ran 0.381 top / 0.440 at rank 11). Competitive.
-- **TDI classification (CYP3A4, CYP2D6).** Best macro MCC ≈ 0.23 (CYP2D6 ~0.12,
-  CYP3A4 ~0.34). This remains well behind the field (0.41–0.46), and we document —
-  with evidence — that the gap is **not** explained by any lever available in the
-  provided data.
-- **The differentiators are negative results**: the elegant "derived TDI label"
-  is empirically *worse* than a plain classifier; a large external assay
-  (PubChem AID 1851) *degrades* the model; and the signal on ECFP4 is essentially
-  linear, making the ceiling representational rather than capacity-limited.
+  **interval-hinge** loss + a CYP3A4 D-MPNN/LightGBM blend reached macro OOF ST-RAE
+  0.427 — but the **interim blind reveal was 0.9356 (rank 200)**: **the ranking
+  holds (Spearman 0.6336) while the magnitudes collapse** (R² ≈ 0). Cause: L1
+  shrinkage × a train/test domain shift (the blind set is *wider* than training,
+  MAD ~1.14 vs 0.72), and a **confirmed CYP2D6 target shift** (the test excluded
+  CYP2D6 hit-expansion, so CYP2D6 test compounds are less potent). OOF was an
+  honest proxy for *ordering* but not for *scale*.
+- **TDI classification (CYP3A4, CYP2D6).** Blind macro MCC **0.273 (rank 73)** —
+  better than our OOF (~0.23; the blind set is easier). This is near the Tier-1
+  band (26 entries statistically tied down to 0.3406), and the submission predated
+  our CYP2D6 threshold fix.
+- **Corrections applied post-reveal:** classification thresholds (CYP2D6 0.10→0.30,
+  CYP3A4 0.35→0.45) to stop over-calling; and a regression dispersion + **validated
+  CYP2D6 location** correction (§24). The identified real lever is a
+  **tabular-foundation-model** approach (CheMeleon + predicted primary-screen +
+  TabICL; ~0.68 blind in the OpenADMET post) — future work.
+- **The differentiators are negative results**: the "derived TDI label" is
+  empirically *worse* than a plain classifier; external AID 1851 *degrades* the
+  model; the ECFP4 signal is essentially linear; and — most importantly — an
+  **honest OOF-vs-blind post-mortem** (ranking preserved, magnitudes lost to
+  domain shift).
 - **No proprietary data.** One external public source (AID 1851) was examined and
   **not used**. Code is open (this repository).
 
