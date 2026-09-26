@@ -688,6 +688,14 @@ TDI); also training-only.
 feasible use is as auxiliary multi-task *training targets*, but the signal
 analysis implies marginal upside on a discrimination-limited task (§5, §10, §15).
 
+**Correction (§23): the conclusion was right but incomplete.** The *raw*
+single-concentration readout is indeed test-unavailable, as stated. But a **model
+that predicts the primary screen from structure** produces a test-available
+feature — and that predicted-primary-screen feature is exactly the lever the
+OpenADMET tabular-FM post uses (§23 #4). We conflated "the raw readout can't be a
+test feature" (true) with "primary-screen information can't help at test" (false).
+The predicted-primary-screen build is pursued in §25.
+
 ## 17. Final regression model — CYP3A4 D-MPNN/LightGBM blend
 
 Recommended regression model: shared D-MPNN with **interval targets** (§14) for
@@ -887,9 +895,19 @@ bound since soft-threshold ≤ raw error).
 | our predictions (blinded) | 0.36 | **0.31× — 3× too compressed** |
 
 Per isoform our predicted MAD is 0.33 / 0.38 / **0.17** / 0.56 — CYP2D6 most
-collapsed. Two effects stack: the L1 mean-regression shrinkage (§7), and a
-**domain shift** — the blind targets are more dispersed than training (1.14 vs
-0.72), so predictions calibrated to training are doubly narrow on the blind set.
+collapsed.
+
+**Correction (do not over-read the "blind is wider" claim).** The MAE/ST-RAE ratio
+is NOT a clean estimate of the test-target MAD: it varies across leaderboard
+entries (top entry 1.61, rank 11 1.50, ours 1.14). If it measured the test MAD it
+would be constant across entries; it is not, because ST-RAE uses soft-threshold
+error while MAE is raw, and the soft/raw ratio differs per entry. So **"the blind
+targets are wider than training" is not established** — the ~1.14 figure reflects
+*our* error profile, not the test set's spread. What *is* established: (a) our
+predictions are severely compressed relative to our own training targets
+(MAD 0.36 vs 0.72), and (b) the **CYP2D6 location shift** (validated in §24). The
+dispersion *expansion* rests on the unestablished wider-blind premise and is
+therefore a gamble; the CYP2D6 location shift is not.
 
 **Q3 — dispersion correction cannot be validated on OOF.** Variance-matching or
 quantile-mapping OOF predictions to the training-target spread **worsens** OOF
