@@ -175,7 +175,30 @@ null), AID 1851 auxiliary heads (§8, hurts), and a standalone TDI-only encoder 
    capacity-limited**, which is exactly why the learned D-MPNN representation, not
    more tuning, was the lever that moved the floor.
 
-## 9. Limitations
+## 9. Validation reliability — OOF underestimated blind error ~2×
+
+A finding worth stating plainly for anyone building on this benchmark: our
+**scaffold-split OOF macro ST-RAE was 0.451, while the blind interim was 0.9356**
+— OOF underestimated blind error by roughly **2×**. Scaffold OOF preserved the
+*ranking* (blind Spearman 0.6336) but badly underestimated the *magnitude* error.
+
+Two causes (diagnosed, not speculated):
+- **Prediction compression under domain shift.** L1/interval regression predicts
+  the conditional median, which is compressed; on a blind set drawn from a
+  different potency regime this collapses to near the predict-a-constant baseline
+  (R² ≈ 0). Our predicted MAD was ~0.36 vs our training targets' 0.72.
+- **A confirmed CYP2D6 target-distribution shift.** The test set was built by hit
+  expansion on CYP3A4/CYP1A2/CYP2C9 only, so CYP2D6 test compounds are less potent
+  than training; predicting at the training-potent level (~4.7) is a systematic
+  over-prediction on the test.
+
+Lesson: on this benchmark, scaffold-split OOF is a usable proxy for *ordering* but
+not for *calibrated magnitude*. A held-out split that deliberately mimics the
+test's potency shift (per isoform) would have caught this; plain scaffold CV did
+not, because it cannot see target-space shift (only feature-space, which we
+checked and found absent).
+
+## 10. Limitations
 
 - **All numbers are scaffold-split OOF, not blind.** Scaffold OOF is a credible
   proxy here — the blinded set is *not* near-duplicate hit expansion (median NN
@@ -192,7 +215,7 @@ null), AID 1851 auxiliary heads (§8, hurts), and a standalone TDI-only encoder 
   ~0.004 seed-ensemble spread bounds the resulting noise, and every reported delta
   is judged against it.
 
-## 10. Reproducibility & disclosures
+## 11. Reproducibility & disclosures
 
 - Pinned data revision; deterministic scaffold folds; `make data | inspect |
   baseline | submit`. Experiments in `experiments/` are phased and checkpointed.
