@@ -719,6 +719,41 @@ Against the interim leaderboard (top 0.3814, rank-11 0.4404), this OOF macro of
 blind; §7 argues scaffold OOF is a credible proxy here, to be confirmed against a
 submission. TDI track: use the classifier head (§15), not the derived label.
 
+## 18. The classification gap is neither training prevalence nor the excluded rows
+
+Two diagnostics on the D-MPNN classifier head (3-seed ensemble; MCC always
+evaluated on the trainable both-arms rows, for comparability).
+
+| config | clf MCC CYP2D6 | clf MCC CYP3A4 |
+|---|---|---|
+| th_clf (native prevalence, guards on) | 0.125 | 0.336 |
+| clf_p15 (BCE reweighted to 15%) | 0.105 | 0.327 |
+| clf_p20 (BCE reweighted to 20%) | 0.113 | 0.346 |
+| clf_dlneg (direct-less rows added as negatives) | 0.124 | **0.302** |
+| baseline LightGBM classifier | 0.097 | 0.347 |
+
+**(1) Training prevalence is not the gap.** Reweighting the loss to a 15% or 20%
+effective prevalence — a genuine change to what the model learns, unlike the inert
+rescoring of §10 — leaves MCC within seed noise (±0.02–0.04) of the native
+setting, with no systematic gain. (Caveat: OOF MCC is measured at the training
+prevalence ~33%/22%; if the blind subset is truly ~15%, a reweighted model could
+calibrate better there, but that is unmeasurable without blind labels — and the
+OOF shows no lift.)
+
+**(2) Including the excluded rows hurts.** Adding the 1,249 CYP3A4 direct-less
+rows as training negatives drops 3A4 MCC to **0.302** (from 0.336). Their
+`is_TDI=False` is an assigned default and many are in fact potent under TDI
+conditions (§4), so they inject label noise. This **validates the guards** — the
+exclusion is correct, and the higher training prevalence it causes is not a
+disadvantage to fix.
+
+**Conclusion.** Neither lever explains the ~0.23-vs-0.41 macro-MCC gap. Combined
+with §5 (CYP2D6 label-noise ceiling), §10 (discrimination, not calibration), and
+§15 (a classifier already beats the derived label), the classification limit is
+intrinsic to *our features and data handling* — so the gap must lie in what the
+top entries do differently (representation, external data, or label handling we
+have not tried). Reading their model reports is the next lever.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
