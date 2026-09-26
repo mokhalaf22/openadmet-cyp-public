@@ -654,6 +654,40 @@ GBM-favoured), and a **classifier head** (or LightGBM) for the CYP2D6/CYP3A4 TDI
 calls. The report's innovation story is the interval/censored regression, not the
 derived label — an honest negative result on the latter.
 
+## 16. Emax and single-concentration data carry no usable TDI lever — dropped
+
+**Feasibility constraint (decisive).** Emax, single-concentration log2fc, and
+pIC50 are all experimental assay readouts. The blinded test set is **SMILES +
+Molecule_Name only** — none of these exist for the 750 test compounds. So **no
+measured readout can be an inference-time input feature**; it would have no value
+to feed at test. This rules out "add Emax as classifier features" independent of
+any signal argument.
+
+**Separation of `is_TDI` (AUC, trainable rows):**
+
+| isoform | pIC50 shift | Emax shift |
+|---|---|---|
+| CYP3A4 | 0.855 | 0.620 |
+| CYP2D6 | 0.962 | 0.696 |
+
+The Emax shift separates **worse**, not better. Caveat: the pIC50-shift AUC is
+**tautological** — `is_TDI` is *defined* from the pIC50 shift (> 0.301), so it
+separates by construction and is not a fair bar. Even so, the Emax distributions
+barely differ by class (CYP3A4 pos/neg medians −0.025/−0.034; CYP2D6
++0.003/−0.019).
+
+**Coverage — Emax adds no rows pIC50 lacks.** Both Emax arms are present in
+exactly the trainable rows (2334/2334, 1493/1493); the direct-less rows carry
+TDI-Emax but **no** direct-Emax (same pattern as pIC50); and **zero** rows have
+Emax where direct pIC50 is missing. Single-concentration log2fc: CYP3A4 AUC 0.812
+(tracks direct potency — a single screen, not a shift), CYP2D6 0.537 (≈ random for
+TDI); also training-only.
+
+**Verdict: dropped.** Two independent reasons — worse separation than the
+(tautological) pIC50 shift, and infeasibility as a test-time feature. The only
+feasible use is as auxiliary multi-task *training targets*, but the signal
+analysis implies marginal upside on a discrimination-limited task (§5, §10, §15).
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
