@@ -1055,14 +1055,19 @@ is a **structure-derived, test-available** feature — the lever §16 missed. Ne
 add CheMeleon embeddings and a TabICL/TabPFN tabular head. The **CYP2D6 location
 correction (§24) is orthogonal** and carries into whatever model we build.
 
-## 26. Tabular-FM pipeline (CheMeleon + predicted-log2FC → TabICL) — does not beat our GBM
+## 26. Tabular-FM pipeline (CheMeleon + predicted-log2FC → TabICL) — could not run the full method; reduced variant comparable
 
-Built the OpenADMET tabular-FM method as their post describes and validated it
-**once** on our scaffold folds with TabICL defaults — *no tuning toward these
-folds* (our OOF is a weak guide, §22). Pipeline: CheMeleon D-MPNN embeddings
-(2048-d, Zenodo `chemeleon_mp.pt`, `MultiHotAtomFeaturizer.v2()`) → PCA-256
-(fit on train, unsupervised) + the 4 fold-aligned predicted-log2FC columns from
-§25 → `TabICLRegressor`, per isoform, 5-fold scaffold OOF.
+**We did not test the OpenADMET method as configured.** TabICL's default
+`n_estimators=8` does not complete on this 24 GB M4 Pro — it stalls at ~12 % CPU
+regardless of `offload_mode` (`auto`/`False`), never finishing a single fit.
+Only a **reduced-ensemble variant, `n_estimators=4`**, completed. So the number
+below is that reduced variant, not the full method; a 0.011 macro gap at *half*
+the configured ensemble is **not evidence the method loses** — it is evidence we
+could not run it here. Ran **once** on our scaffold folds, no tuning toward them
+(our OOF is a weak guide, §22). Pipeline: CheMeleon D-MPNN embeddings (2048-d,
+Zenodo `chemeleon_mp.pt`, `MultiHotAtomFeaturizer.v2()`) → PCA-256 (fit on train,
+unsupervised) + the 4 fold-aligned predicted-log2FC columns from §25 →
+`TabICLRegressor`, per isoform, 5-fold scaffold OOF.
 
 **Like-for-like (same folds, same predicted-log2FC feature, single run):**
 
@@ -1074,25 +1079,22 @@ folds* (our OOF is a weak guide, §22). Pipeline: CheMeleon D-MPNN embeddings
 | CYP3A4 | 0.316 ± 0.024 | 0.283 |
 | **macro** | **0.444** | **0.433** |
 
-**Our LightGBM + predicted-primary-screen (0.433) wins**; TabICL is slightly
-worse (0.444), driven mainly by CYP3A4 (0.316 vs 0.283). The 0.011 macro gap is
-inside the per-fold spread (±0.024–0.037), so read it as *comparable, TabICL not
-ahead* rather than a decisive loss. This is consistent with the OpenADMET post's
-own decomposition: the **predicted-primary-screen feature carries the gain**
-(their CheMeleon-only 0.83 → full 0.68), and we already have that feature in the
-0.433 model — adding CheMeleon embeddings + a tabular FM on top buys nothing on
-our folds. Their blind 0.68 (full) / 0.83 (CheMeleon-only) remains the relevant
-external benchmark, not our OOF.
+The reduced (`n_estimators=4`) variant is **comparable** to our LightGBM +
+predicted-primary-screen (0.433): macro 0.444, gap 0.011, inside the per-fold
+spread (±0.024–0.037). We **cannot** conclude the tabular-FM method loses — we
+never ran it at its configured ensemble size. What the comparison *does* support,
+and independently of TabICL, is the OpenADMET post's own decomposition: the
+**predicted-primary-screen feature carries the gain** (their CheMeleon-only 0.83
+→ full 0.68), and we already have that feature in the 0.433 model. Whether the
+full CheMeleon + TabICL adds to it on our data is **untested** on this hardware.
+Their blind 0.68 (full) / 0.83 (CheMeleon-only) remains the external benchmark,
+not our OOF.
 
-**Compute caveat (disclosed, not fold-tuning).** TabICL ran with
-`n_estimators=4`, not the default 8: the default does not complete on this 24 GB
-M4 Pro — it stalls at ~12 % CPU regardless of `offload_mode` (`auto`/`False`),
-whereas `n_estimators≤4` completes (~20 s/fit warm). This is a global
-compute/hardware setting chosen a priori and applied uniformly to every isoform
-and fold; TabICL's members are random feature-permutation replicas, so 4 vs 8 is
-a small variance difference, not a different method or a knob turned against fold
-scores. CYP3A4 fits are ~7 min each (largest training context; TabICL cost scales
-with context length) vs ~30–60 s for the other isoforms.
+**Why only the reduced variant.** TabICL's members are random feature-permutation
+replicas; `n_estimators=4` completes (~20 s/fit warm) while the default 8 hangs.
+CYP3A4 fits are ~7 min each (largest training context; TabICL cost scales with
+context length) vs ~30–60 s for the other isoforms — so at the full ensemble the
+run is many hours here, before the stall is even reached.
 
 **Engineering note (OpenMP conflict).** Importing `lightgbm` or `chemprop` in the
 same process as TabICL loads a second OpenMP runtime that *segfaults*

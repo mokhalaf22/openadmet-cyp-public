@@ -174,16 +174,19 @@ null), AID 1851 auxiliary heads (§8, hurts), and a standalone TDI-only encoder 
    model capacity does not help — the ceiling is **representational, not
    capacity-limited**, which is exactly why the learned D-MPNN representation, not
    more tuning, was the lever that moved the floor.
-4. **A foundation-embedding tabular-FM pipeline does not beat our GBM** (§26). We
-   built the OpenADMET tabular-FM method — CheMeleon D-MPNN embeddings (PCA-256) +
-   the predicted-primary-screen feature → TabICL — and validated it once on our
-   folds: macro OOF **0.444**, versus **0.433** for our LightGBM with the *same*
-   predicted-primary-screen feature (gap inside the per-fold spread). The lever in
-   that pipeline is the **structure-predicted primary-screen log2FC feature**
-   (§25), which we already use; the CheMeleon embedding + tabular FM on top add
-   nothing on our data. The right lesson from the OpenADMET decomposition
-   (CheMeleon-only 0.83 → full 0.68 blind) is *the predicted screen carries the
-   gain*, and that is a feature, not a model class.
+4. **The predicted-primary-screen feature is the lever; the foundation-model
+   wrapper is unproven on our hardware** (§26). We tried the OpenADMET tabular-FM
+   pipeline — CheMeleon D-MPNN embeddings (PCA-256) + the predicted-primary-screen
+   feature → TabICL — but **could not run the method as configured**: TabICL's
+   default `n_estimators=8` does not complete on this 24 GB M4 Pro (stalls at ~12 %
+   CPU regardless of offload mode). Only a reduced `n_estimators=4` variant ran,
+   and it was **comparable** to our LightGBM with the same feature (macro OOF 0.444
+   vs 0.433, gap inside the per-fold spread) — which is *not* evidence the method
+   loses, only that we could not test it at full strength. What the exercise does
+   confirm, model-class-independently, is the OpenADMET decomposition (CheMeleon-only
+   0.83 → full 0.68 blind): **the structure-predicted primary-screen log2FC feature
+   (§25) carries the gain**, and we already use it. That lever is a *feature*, not a
+   foundation model.
 
 ## 9. Validation reliability — OOF underestimated blind error ~2×
 
