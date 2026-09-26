@@ -754,8 +754,41 @@ intrinsic to *our features and data handling* — so the gap must lie in what th
 top entries do differently (representation, external data, or label handling we
 have not tried). Reading their model reports is the next lever.
 
+## 19. Two more classification levers: predicted-delta feature, and AID 1851
+
+**Lever A — predicted delta as a classifier feature (null).** Unlike the Emax
+readouts (§16), the model's own predicted `delta` is structure-derived and so
+available at test time. Feeding the **out-of-fold** predicted delta (+mu, 3-seed
+ensemble) into a LightGBM classifier alongside ECFP: CYP2D6 0.122 → 0.130
+(+0.007), CYP3A4 0.359 → 0.347 (−0.011). No orthogonal signal beyond structure —
+consistent with §15 (the shift signal is already in the features; the limit is
+discrimination).
+
+**Lever B — PubChem AID 1851 (Veith CYP qHTS panel) as auxiliary heads.**
+External source disclosed here (public data; the proprietary-data flag stays
+unchecked). Downloaded via the PubChem data-table endpoint: **85,605 rows =
+16,560 compounds × 5 isoforms** (CYP1A2/2C9/2C19/2D6/3A4), 24,045 Active /
+42,395 Inactive / 19,165 Inconclusive (AC50 ≤ 10 µM = active). Per CLAUDE.md it
+enters only as **separate auxiliary heads** — never merged into the scored pIC50
+columns, no cross-assay rescaling.
+
+Structural overlap (InChIKey connectivity block):
+
+| comparison | overlap | NN ECFP Tanimoto |
+|---|---|---|
+| AID1851 ∩ our training | 184 (3.0% of train) | — |
+| AID1851 ∩ blinded 750 | 1 (0.1%) | — |
+| blinded → AID1851 (nearest) | — | median **0.368**, 1% > 0.7, 35% > 0.4 |
+
+AID 1851 is a large but **chemically distant** source: it barely overlaps our
+data and the blinded compounds sit far from it (median NN 0.368, vs 0.587 to our
+own training in §7). So it can only help as encoder regularization from ~16.5k
+extra molecules; direct transfer to the hit-expansion blinded series is uncertain.
+Aux-head training result recorded below once run.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
 `cyp.baseline`, `cyp.twohead`, and `experiments/`. Everything above is derived
-solely from the public challenge dataset.
+solely from the public challenge dataset (plus PubChem AID 1851 as a disclosed
+external auxiliary source, §19).
