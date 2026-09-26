@@ -133,14 +133,20 @@ TDI classification, OOF MCC (3-seed ensemble):
 |---|---|---|
 | baseline LightGBM classifier | 0.097 | 0.347 |
 | derived label (from two-head) | 0.031 | 0.337 |
-| shared-model classifier head | 0.125 | 0.336 |
-| standalone classifier (own encoder) | _(§7, filled after run)_ | _(§7)_ |
+| **shared-model classifier head (final)** | **0.125** | **0.336** |
+| standalone classifier (own encoder) | 0.111 | 0.288 |
+
+The **shared-model classifier head is the final TDI model**: a standalone
+TDI-only encoder is *worse* (0.111 / 0.288), so encoder-sharing helps
+classification rather than costing it — the regression data regularizes the
+encoder (§20). MCC seed spread here is ~0.03–0.06, larger than the regression
+floor, so these numbers carry that uncertainty.
 
 Levers that did **not** move classification (all null or negative): threshold
 recalibration (§10), `shift_prior` (§15), Emax / single-concentration features
 (§16, also test-unavailable), training-prevalence reweighting (§18), including the
 excluded direct-less rows (§18, hurts), predicted-`delta` as a feature (§19,
-null), and AID 1851 auxiliary heads (§8, hurts).
+null), AID 1851 auxiliary heads (§8, hurts), and a standalone TDI-only encoder (§7, worse).
 
 ## 8. Negative results (the differentiator)
 

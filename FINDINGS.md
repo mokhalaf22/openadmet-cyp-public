@@ -816,6 +816,28 @@ over-claimed:
 Neither limitation plausibly flips a −0.015-to-−0.06 result, but both belong in
 the write-up as caveats on the strength of the negative.
 
+## 20. Standalone TDI classifier — sharing helps, it does not cost
+
+Hypothesis: everything tested routes through an encoder trained primarily for
+regression, and the sharing that bought −0.03 on regression might be *costing*
+classification. Test: a D-MPNN encoder trained **only** on the TDI objective for
+CYP3A4/CYP2D6, no regression heads (3-seed ensemble, global folds).
+
+| approach | CYP2D6 | CYP3A4 |
+|---|---|---|
+| shared-model classifier head | 0.125 | 0.336 |
+| **standalone classifier (own encoder)** | **0.111** | **0.288** |
+| baseline LightGBM | 0.097 | 0.347 |
+
+Per-seed MCC: CYP2D6 [0.089, 0.056, 0.115], CYP3A4 [0.255, 0.256, 0.282]. The
+standalone encoder is **worse**, clearly on CYP3A4 (0.288 vs 0.336, beyond the
+per-seed spread). So encoder-sharing does **not** cost classification — the
+opposite: the plentiful regression data regularizes the shared encoder, and a
+TDI-only encoder trained on ~2–3k labelled rows learns a weaker representation.
+The classification lever is exhausted; the final TDI model is the **shared-model
+classifier head**. (Note the MCC seed spread here is ~0.03–0.06 — larger than the
+regression ST-RAE floor — so all classification numbers carry that uncertainty.)
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
