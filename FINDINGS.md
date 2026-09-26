@@ -900,10 +900,12 @@ toward its wider spread) therefore can't be checked against OOF; it is justifiab
 only from the single blind data point, and it preserves ranking — our one working
 asset (Spearman 0.63).
 
-**Q2 — final D-MPNN model's blinded dispersion:** _(filled from the train-on-all
-run)_. OOF proxy: the interval D-MPNN's OOF predictions are similarly compressed
-(std 0.32–0.75 vs training-target std 0.78–1.09), so switching models does not fix
-compression.
+**Q2 — the final D-MPNN model is compressed too.** Its blinded predictions (train
+on all, 3-seed) per-isoform std: CYP1A2 0.46, CYP2C9 0.53, CYP2D6 0.23, CYP3A4
+0.73 — barely wider than the submitted LightGBM (0.40 / 0.45 / 0.22 / 0.73) and
+still ~half the training-target std (1.03 / 0.78 / 0.92 / 1.09), far below the
+blind spread (MAD 1.14 → std ≈ 1.4). Switching models does **not** fix
+compression; it is inherent to L1/interval regression under weak features.
 
 **Classification correction (applied).** The interim over-calling (precision 0.318,
 recall 0.718) is dominated by CYP2D6 at threshold 0.10 (47% positive). Applied:
@@ -915,9 +917,20 @@ choice. Regenerate + re-upload the classification file.
 
 **Conclusion.** The regression entry ranks well but is magnitude-collapsed against a
 blind set that is wider than training. The lever is a monotone **dispersion
-correction** (ranking-preserving) toward the blind spread — applied to the
-submission with the explicit caveat that it is leaderboard-informed and not
-OOF-validatable.
+correction** (ranking-preserving) toward the blind spread.
+
+**Correction applied (`submissions/regression_corrected.parquet`).** Base = D-MPNN
+interval blinded predictions (CYP3A4 = 0.5/0.5 blend with LightGBM, §17), then each
+isoform variance-matched to the **training-target std**. Expansion factors: CYP1A2
+×2.24, CYP2C9 ×1.49, CYP2D6 ×4.03, CYP3A4 ×1.58; macro predicted MAD 0.36 → 0.77.
+**Why training-std is the right target, not the full blind spread:** the MMSE-optimal
+predictor spread is `r × target_std`; with r ≈ Spearman 0.63 and blind std ≈ 1.4,
+that is ≈ 0.9 — essentially the training-target std (macro ≈ 0.95). So matching to
+the training spread is approximately optimal for the wider blind set, *not* an
+overshoot to 1.4. This preserves Spearman exactly and is expected to pull blind
+ST-RAE down from ~0.94, but it is leaderboard-informed and cannot be validated
+without a submission (and assumes the blind *mean* ≈ training mean; R² ≈ 0 leaves a
+possible mean offset uncorrected).
 
 ## Reproduce
 
