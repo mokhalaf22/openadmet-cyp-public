@@ -174,6 +174,16 @@ null), AID 1851 auxiliary heads (§8, hurts), and a standalone TDI-only encoder 
    model capacity does not help — the ceiling is **representational, not
    capacity-limited**, which is exactly why the learned D-MPNN representation, not
    more tuning, was the lever that moved the floor.
+4. **A foundation-embedding tabular-FM pipeline does not beat our GBM** (§26). We
+   built the OpenADMET tabular-FM method — CheMeleon D-MPNN embeddings (PCA-256) +
+   the predicted-primary-screen feature → TabICL — and validated it once on our
+   folds: macro OOF **0.444**, versus **0.433** for our LightGBM with the *same*
+   predicted-primary-screen feature (gap inside the per-fold spread). The lever in
+   that pipeline is the **structure-predicted primary-screen log2FC feature**
+   (§25), which we already use; the CheMeleon embedding + tabular FM on top add
+   nothing on our data. The right lesson from the OpenADMET decomposition
+   (CheMeleon-only 0.83 → full 0.68 blind) is *the predicted screen carries the
+   gain*, and that is a feature, not a model class.
 
 ## 9. Validation reliability — OOF underestimated blind error ~2×
 
