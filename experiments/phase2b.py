@@ -29,7 +29,11 @@ D="data/cyp-challenge-train-test/"; ISOS=["CYP1A2","CYP2C9","CYP2D6","CYP3A4"]; 
 NF=5; DH=200; MAXEP=300; PATIENCE=20; BS=512; IVFRAC=0.15
 RESULTS="experiments/phase2b_results.json"
 CONFIGS={"th_sp0":dict(sp=0.0,clf=False),"th_sp5e-3":dict(sp=5e-3,clf=False),
-         "th_sp2e-2":dict(sp=2e-2,clf=False),"th_clf":dict(sp=5e-3,clf=True)}
+         "th_sp2e-2":dict(sp=2e-2,clf=False),"th_clf":dict(sp=5e-3,clf=True),
+         # classifier-head diagnostics
+         "clf_p15":dict(sp=5e-3,clf=True,clf_prev=0.15),   # reweight loss to 15% prevalence
+         "clf_p20":dict(sp=5e-3,clf=True,clf_prev=0.20),   # reweight loss to 20% prevalence
+         "clf_dlneg":dict(sp=5e-3,clf=True,clf_dlneg=True)} # include 3A4 direct-less rows as negatives
 df=pd.read_csv(D+"cyp-challenge-TRAIN_TDI.csv")
 def dc(i): return f"{i}_pIC50_direct_inhibition"
 def tc(i): return f"{i}_pIC50_TDI_condition"
@@ -47,6 +51,8 @@ Mt=~np.isnan(Yt)
 # TDI classification labels + trainable mask (both arms, excludes assigned-negatives)
 ISTDI={i:df[f"{i}_is_TDI"] for i in TDI}
 TRAINABLE={i:tdi_trainable_mask(df,i).to_numpy() for i in TDI}
+# CYP3A4 direct-less rows (TDI arm present, direct arm absent) — normally excluded
+DIRECTLESS_3A4=(df["CYP3A4_pIC50_TDI_condition"].notna()&df["CYP3A4_pIC50_direct_inhibition"].isna()).to_numpy()
 def strae(p,lo,hi,y): return float(st_rae_torch(*(torch.tensor(a,dtype=torch.float64) for a in (p,lo,hi,y))))
 def std1(v): v=np.asarray(v,float); return float(v.std(ddof=1)) if len(v)>1 else 0.0
 def load():
@@ -90,11 +96,18 @@ def run_seed(name,cfg,seed):
         ym=np.array([Yd[tr,j][Md[tr,j]].mean() for j in range(4)]); ys=np.array([Yd[tr,j][Md[tr,j]].std() or 1.0 for j in range(4)])
         dlo=np.nan_to_num((LOd-ym)/ys); dhi=np.nan_to_num((HId-ym)/ys)
         tlo=np.nan_to_num((LOt-ym)/ys); thi=np.nan_to_num((HIt-ym)/ys)
-        # classifier targets (2D6,3A4) as 0/1, mask = trainable
-        clf_y=np.zeros((len(df),2)); clf_m=np.zeros((len(df),2))
+        # classifier targets (2D6,3A4) as 0/1, mask = trainable, weights for prevalence sim
+        clf_y=np.zeros((len(df),2)); clf_m=np.zeros((len(df),2)); clf_w=np.ones((len(df),2))
         for k,iso in enumerate(TDI):
-            j=ISOS.index(iso); tm=TRAINABLE[iso]
+            tm=TRAINABLE[iso]
             clf_y[tm,k]=ISTDI[iso][tm].astype(bool).astype(float); clf_m[tm,k]=1.0
+        if cfg.get("clf_dlneg"):   # diagnostic: 3A4 direct-less rows as extra negatives
+            k=TDI.index("CYP3A4"); clf_m[DIRECTLESS_3A4,k]=1.0; clf_y[DIRECTLESS_3A4,k]=0.0
+        if cfg.get("clf_prev"):    # reweight each isoform's BCE to a target prevalence p
+            p=cfg["clf_prev"]
+            for k in range(2):
+                sel=clf_m[:,k]==1; prev=clf_y[sel,k].mean()
+                clf_w[sel&(clf_y[:,k]==1),k]=p/prev; clf_w[sel&(clf_y[:,k]==0),k]=(1-p)/(1-prev)
         torch.manual_seed(seed); m=TwoHead(clf=cfg["clf"]); opt=torch.optim.Adam(m.parameters(),lr=1e-3,weight_decay=1e-4)
         n=len(tr); g=torch.Generator().manual_seed(seed); best=(1e9,None,0)
         for ep in range(MAXEP):
@@ -105,9 +118,9 @@ def run_seed(name,cfg,seed):
                 loss=loss+interval_hinge(mu+delta,torch.tensor(tlo[b],dtype=torch.float32),torch.tensor(thi[b],dtype=torch.float32),torch.tensor(Mt[b],dtype=torch.float32))
                 if cfg["sp"]>0: loss=loss+cfg["sp"]*delta.abs().mean()
                 if cfg["clf"]:
-                    cm=torch.tensor(clf_m[b],dtype=torch.float32)
+                    cm=torch.tensor(clf_m[b],dtype=torch.float32); cw=torch.tensor(clf_w[b],dtype=torch.float32)
                     bce=nn.functional.binary_cross_entropy_with_logits(logits,torch.tensor(clf_y[b],dtype=torch.float32),reduction="none")
-                    loss=loss+(bce*cm).sum()/cm.sum().clamp(min=1)
+                    loss=loss+(bce*cm*cw).sum()/(cm*cw).sum().clamp(min=1)
                 loss.backward(); opt.step()
             m.eval()
             with torch.no_grad():
@@ -162,7 +175,7 @@ def ensemble(name):
 def report(R):
     print("\n===== PHASE 2b (two-head TDI arm, 3-seed ensemble) =====")
     print("baseline LightGBM classifier MCC: CYP2D6 0.097, CYP3A4 0.347")
-    for k in ["th_sp0","th_sp5e-3","th_sp2e-2","th_clf"]:
+    for k in ["th_sp0","th_sp5e-3","th_sp2e-2","th_clf","clf_p15","clf_p20","clf_dlneg"]:
         if k in R:
             r=R[k]; dm=r["derived_mcc"]
             line=f"{k:10} directST-RAE macro={r['macro']:.3f}  derivedMCC 2D6={dm['CYP2D6']:.3f} 3A4={dm['CYP3A4']:.3f}"
