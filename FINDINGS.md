@@ -1238,9 +1238,58 @@ a harder CYP2D6 factor; testing v1 first risks a CYP2D6 overshoot masking the re
 gains on the other three. v2 is the lower-variance bet consistent with §23/§24;
 `regression_final` (0.7114) remains the fallback if v2 regresses.
 
-## Reproduce
+## 29. TDI live-board result — threshold fix worked (rank 73 → 59)
 
-Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
+Re-uploaded classification with the CYP2D6 0.30 / CYP3A4 0.45 thresholds (§22).
+Live board:
+
+| metric | before | after |
+|---|---|---|
+| rank | 73 | **59** |
+| MA-MCC | 0.273 | **0.3097** |
+| precision | 0.318 | **0.3872** |
+| recall | 0.718 | 0.5011 |
+| accuracy | — | 0.8014 |
+
+**Diagnostic: we call too many false positives, not too few positives.** The top
+entries run precision 0.53–0.71 at recall 0.41–0.54; rank-1 `nova` is 0.7084
+precision at 0.5053 recall — essentially our recall (0.5011) with **double** our
+precision (0.3872). Our accuracy 0.8014 sits below the field's 0.85–0.87, which on
+an imbalanced problem points at residual false positives. CYP3A4 at threshold 0.45
+still predicts **32.7%** positive vs an implied field rate near **17%**. → raising
+the CYP3A4 threshold to trade recall for precision is the lever (§29a).
+
+## 29a. Tightened CYP3A4 threshold variants
+
+CYP2D6 held @ 0.30 (OOF MCC 0.096, blinded pos 13.2%). CYP3A4 sweep, on baseline's
+stored probabilities (`experiments/clf_tighten.py`):
+
+| CYP3A4 thr | OOF MCC (3A4) | OOF pos% | blinded pos% | macro OOF MCC |
+|---|---|---|---|---|
+| 0.45 (current) | 0.321 | 33.1% | 32.7% | 0.208 |
+| 0.55 | 0.302 | 26.3% | 26.9% | 0.199 |
+| 0.65 | 0.271 | 19.2% | 19.6% | 0.183 |
+
+**OOF MCC falls as we tighten** (−0.019 at 0.55, −0.050 at 0.65) — because the OOF
+set has 32.7% positives, so on *that* distribution 0.45 is near-optimal. But the
+blind diagnostic (§29) says the scored subset behaves differently: precision 0.39 at
+recall 0.50 vs the field's 0.53–0.71 at 0.41–0.54, and an implied field positive rate
+~17% against our 32.7%. That is a **prevalence shift** — the scored subset has far
+fewer true CYP3A4 positives than our training pool — exactly the kind of shift OOF
+cannot see, the same failure mode that made OOF mis-predict the regression location
+fix (§27, which gained 105 ranks against OOF's advice).
+
+**Recommendation — upload CYP3A4 @ 0.65 (`classification_3a4_065.parquet`).** It
+brings the CYP3A4 positive rate to 19.6%, matching the field's ~17% operating point
+where the top entries reach 0.53–0.71 precision. We have recall headroom to spend:
+we sit at 0.50, the field runs 0.41–0.54, so trading recall for precision is the
+right direction and unlikely to push recall below the field band. The −0.050 OOF-MCC
+cost is expected and, per §27, OOF is an unreliable guide under a prevalence/potency
+shift — the blind precision gap is the stronger evidence. 0.55 (26.9% positive) is a
+half-measure still ~1.6× the field rate: it risks a slot on an ambiguous result. Only
+CYP3A4 changes; CYP2D6 stays at its validated 0.30. Fallback if it regresses: the
+current 0.45 submission (MA-MCC 0.3097) — the classification track has its own 12-hour
+cooldown, so this is one shot per cycle too.
 `cyp.baseline`, `cyp.twohead`, and `experiments/`. Everything above is derived
 solely from the public challenge dataset (plus PubChem AID 1851 as a disclosed
 external auxiliary source, §19).
