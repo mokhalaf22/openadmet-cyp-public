@@ -1349,14 +1349,38 @@ less potent than training* (§23), so a training-matched CYP2D6 tail likely over
 this test. v2 kept CYP2D6 at 0.48× on purpose; v3 abandons that caution. This is the
 one part of v3 at risk.
 
-**Recommendation — spend the regression slot on v3.** Dispersion is now the confirmed
-lever (§30), and 0.85→1.0 on the three no-shift isoforms is a large enough further
-expansion to clear the half-set noise floor. If v3 beats 0.6683, full-match calibration
-is confirmed; if it regresses, the near-certain culprit is CYP2D6's full-tail expansion
-into the down-shifted region, and a follow-up (three isoforms 1.0×, CYP2D6 held ~0.85×)
-isolates it next cycle. Fallback: `regression_disp_v2` (0.6683). **Classification:
-revert to `classification.parquet` (CYP3A4 0.45 / CYP2D6 0.30), which held MA-MCC
-0.3097 (§30).** Both files ready for the ~07:51 UTC cooldown window.
+**v3 confounds two changes** — the three no-shift isoforms go 0.85→1.0 *and* CYP2D6
+goes 0.48→1.0. A gain wouldn't attribute; a regression would cost a cycle to diagnose.
+So we do not spend the slot on v3.
+
+### v3b — isolate the confirmed hypothesis (chosen)
+
+`regression_disp_v3b.parquet` (`experiments/regression_disp_v3b.py`): CYP1A2/CYP2C9/
+CYP3A4 → 1.0×, **CYP2D6 held at 0.85×** (peer level, not full training width). Spearman
+**1.00000** on all four.
+
+| iso | target | factor | ratio → new | new range |
+|---|---|---|---|---|
+| CYP1A2 | 1.0 | 1.73× | 0.58 → 1.00 | [1.27, 6.80] |
+| CYP2C9 | 1.0 | 1.31× | 0.76 → 1.00 | [3.03, 6.83] |
+| CYP2D6 | 0.85 | 2.65× | 0.32 → 0.85 | [3.02, 7.40] |
+| CYP3A4 | 1.0 | 1.35× | 0.74 → 1.00 | [1.44, 7.31] |
+
+CYP2D6 tail at 0.85×: >6.0 = 39 (5.2%), >6.5 = 16 (2.1%), max 7.40 (vs training 7.4% /
+3.4% / 7.53) — held below the full training-width tail v3 would give it (7.96), because
+the test is *less potent* (§23).
+
+**Why v3b over v3.** It pushes only the **confirmed** hypothesis — more dispersion helps
+where there is *no* known distribution shift (the three isoforms → 1.0×) — while *not*
+betting the slot on the **unconfirmed** one — that CYP2D6 wants a full training-width tail
+despite the organizers stating its test set is less potent (§23). A clean read: if v3b
+beats 0.6683, the confirmed lever extends to full match; the next cycle then tests CYP2D6
+at 1.0× alone, giving clean attribution for *both* factors. v3 would have entangled them.
+Fallback if v3b regresses: `regression_disp_v2` (0.6683).
+
+**Classification:** revert to `classification.parquet` (CYP3A4 0.45 / CYP2D6 0.30), which
+held MA-MCC 0.3097 (§30). Both files — `regression_disp_v3b.parquet` and
+`classification.parquet` — are validated and ready for the ~07:51 UTC cooldown window.
 
 ## Reproduce
 
