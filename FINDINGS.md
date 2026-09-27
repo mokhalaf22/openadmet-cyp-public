@@ -1132,13 +1132,22 @@ floor, so we keep **pure D-MPNN+primary** (`experiments/blend_check.py`).
 **Final regression submission.** Built from the winner (**D-MPNN interval +
 predicted-primary**, 0.415 macro OOF). Blinded predictions from
 `experiments/gen_blinded_primary.py` (all-data, 3-seed ensemble, GFOLD-OOF
-predicted-log2FC on train / full-model on test); `experiments/final_regression.py`
-applies the validated **CYP2D6 −0.5 location shift** (§24) and writes through
-`cyp.submit.write_submission` → `submissions/regression_final.parquet` (750 rows,
-schema-validated, no NaN). The CYP2D6 shift is orthogonal and carries onto the
-winner. **Compression is not fixed** (per-isoform predicted std is 0.46/0.77/0.29/
-0.72× the training-target std) — the CYP2D6 shift corrects *location*, not *spread*;
-dispersion expansion remains an unvalidated gamble (§22/§24), so it was not applied.
+predicted-log2FC on train / full-model on test, `weight_decay=1e-4` to match the
+validated `dmpnn_primary.py` — the original `gen_blinded.py` used `1e-3`, which
+over-regularized (one seed early-stopped at 8 epochs) and did not match what was
+validated); `experiments/final_regression.py` applies the validated **CYP2D6 −0.5
+location shift** (§24) and writes through `cyp.submit.write_submission` →
+`submissions/regression_final.parquet` (750 rows, schema-validated, no NaN).
+
+**Compression is reduced but not eliminated.** Per-isoform predicted std / training-
+target std: CYP1A2 0.58, CYP2C9 0.76, CYP2D6 0.32, CYP3A4 0.74 — versus the
+currently-submitted LightGBM baseline's 0.39/0.58/0.24/0.66. The better-regularized
+D-MPNN+primary is naturally *less* compressed on every isoform (not from an
+artificial dispersion correction — that remains an unvalidated gamble, §22/§24, and
+was not applied; the wider spread is a property of the better model). The CYP2D6
+shift corrects *location*, not *spread*. So the residual compression that drove the
+blind ~2× OOF underestimate (§9) is smaller here than in the submitted file, but not
+gone.
 
 ## Reproduce
 

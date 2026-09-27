@@ -48,7 +48,7 @@ def run_seed(seed):
     PFo=np.nan_to_num((PLOGo-pm)/ps); PFt=np.nan_to_num((PLOGt-pm)/ps)  # test uses TRAIN feature stats
     def pfo(rows): return torch.tensor(PFo[rows],dtype=torch.float32)
     def pft(rows): return torch.tensor(PFt[rows],dtype=torch.float32)
-    torch.manual_seed(seed); net=DMPNN(); opt=torch.optim.Adam(net.parameters(),lr=1e-3,weight_decay=1e-3)
+    torch.manual_seed(seed); net=DMPNN(); opt=torch.optim.Adam(net.parameters(),lr=1e-3,weight_decay=1e-4)  # match validated dmpnn_primary.py
     n=len(tr); g=torch.Generator().manual_seed(seed); best=(1e9,None,0)
     def macro_iv():
         with torch.no_grad(): mv=net(bmg(iv,MG),pfo(iv))[0].numpy()*ys+ym
