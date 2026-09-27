@@ -1290,6 +1290,77 @@ half-measure still ~1.6× the field rate: it risks a slot on an ambiguous result
 CYP3A4 changes; CYP2D6 stays at its validated 0.30. Fallback if it regresses: the
 current 0.45 submission (MA-MCC 0.3097) — the classification track has its own 12-hour
 cooldown, so this is one shot per cycle too.
+
+## 30. Live-board round 2 — dispersion helped, classification tightening failed
+
+**Regression: dispersion v2 (0.85× on CYP1A2/2C9/3A4, CYP2D6 1.5×→0.48) improved
+everything.**
+
+| metric | before (regression_final) | after (regression_disp_v2) |
+|---|---|---|
+| MA-ST-RAE | 0.7114 | **0.6683** |
+| MAE | 0.9039 | **0.8689** |
+| R² | 0.2495 | **0.3041** |
+| Spearman | 0.6965 | 0.6965 (unchanged, by design) |
+| rank | 95 | **83** |
+
+Compression was costing us, not reflecting honest uncertainty — expanding spread at
+fixed ranking is a real lever. The dispersion gamble (§22/§24), which OOF could not
+justify, is now confirmed on blind data (like the CYP2D6 location fix, §27).
+
+**Classification: tightening CYP3A4 to 0.65 FAILED — reverting to 0.45.**
+
+| metric | 0.45 (before) | 0.65 (after) |
+|---|---|---|
+| MA-MCC | 0.3097 | **0.2989** ↓ |
+| precision | 0.3872 | 0.4343 |
+| recall | 0.5011 | 0.4072 |
+| rank | 59 | **67** ↓ |
+
+Precision rose as predicted but recall fell more, and MCC dropped. **0.45 was nearer
+the blind MCC optimum; the §29a prevalence-matching argument was wrong.** The leaders
+reach their precision-recall operating point through **better discrimination** (a
+better-ranked classifier), not a tighter cut on our probabilities — chasing their
+positive rate by moving a threshold on a weaker ranker just slides down our own
+inferior ROC curve. Threshold moves are not a substitute for a better classifier.
+Revert to 0.45 (`submissions/classification.parquet`).
+
+**Half-set caveat — only large moves are trustworthy.** The live board scores **half**
+the test set; final scoring (2026-11-03) uses the full set. A ~0.04 ST-RAE move (this
+round) is real signal; a ~0.005 move may be half-set noise that will not survive to
+the full set. Size confidence to the size of the move.
+
+## 30a. Regression v3 — full 1.0× spread on all four isoforms
+
+`regression_disp_v3.parquet` (`experiments/regression_disp_v3.py`): expand every
+isoform to 1.0× the training-target std, same mean-centred affine map, built from
+`regression_final`. Spearman **1.00000** on all four (ranking untouched).
+
+| iso | factor | old ratio → new | new range |
+|---|---|---|---|
+| CYP1A2 | 1.73× | 0.58 → 1.00 | [1.27, 6.80] |
+| CYP2C9 | 1.31× | 0.76 → 1.00 | [3.03, 6.83] |
+| CYP2D6 | 3.12× | 0.32 → 1.00 | [2.81, **7.96**] |
+| CYP3A4 | 1.35× | 0.74 → 1.00 | [1.44, 7.31] |
+
+**CYP2D6 caveat.** At 1.0× its tail now mirrors training — >6.0: 54 (7.2%), >6.5:
+29 (3.9%), max 7.96 — versus training's 7.4% / 3.4% / 7.53. But the test is *known
+less potent than training* (§23), so a training-matched CYP2D6 tail likely over-states
+this test. v2 kept CYP2D6 at 0.48× on purpose; v3 abandons that caution. This is the
+one part of v3 at risk.
+
+**Recommendation — spend the regression slot on v3.** Dispersion is now the confirmed
+lever (§30), and 0.85→1.0 on the three no-shift isoforms is a large enough further
+expansion to clear the half-set noise floor. If v3 beats 0.6683, full-match calibration
+is confirmed; if it regresses, the near-certain culprit is CYP2D6's full-tail expansion
+into the down-shifted region, and a follow-up (three isoforms 1.0×, CYP2D6 held ~0.85×)
+isolates it next cycle. Fallback: `regression_disp_v2` (0.6683). **Classification:
+revert to `classification.parquet` (CYP3A4 0.45 / CYP2D6 0.30), which held MA-MCC
+0.3097 (§30).** Both files ready for the ~07:51 UTC cooldown window.
+
+## Reproduce
+
+Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
 `cyp.baseline`, `cyp.twohead`, and `experiments/`. Everything above is derived
 solely from the public challenge dataset (plus PubChem AID 1851 as a disclosed
 external auxiliary source, §19).
