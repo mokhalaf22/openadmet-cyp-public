@@ -1188,9 +1188,55 @@ modest: not the aggressive full-match (1.0×), and nowhere near the ×4.03 CYP2D
 blow-up that the earlier dispersion gamble implied. Built as
 `submissions/regression_disp.parquet` (`experiments/regression_disp.py`) from the
 same D-MPNN+primary blinded predictions with the CYP2D6 location shift already
-applied, so it differs from `regression_final.parquet` in dispersion ONLY. With
-unlimited replacements before 2026-11-03, one upload is the cheapest possible test
-of whether calibration is the remaining lever.
+applied, so it differs from `regression_final.parquet` in dispersion ONLY.
+
+**Upload budget.** The leaderboard enforces a **12-hour cooldown per submission** —
+so ~2 regression tests per day until 2026-11-03. Every upload is a scarce resource;
+a variant must be worth a slot before it is spent, not merely plausible.
+
+### 28a. The CYP2D6 expansion in v1 fights the confirmed downward shift
+
+Re-examining v1's CYP2D6 (2.65× about the predicted mean 4.24):
+
+| | mean | median | std | >6.0 | >6.5 | max |
+|---|---|---|---|---|---|---|
+| train CYP2D6 (n=1493) | 4.78 | 4.73 | 0.92 | 7.4% | 3.4% | 7.53 |
+| pre-expansion (final, −0.5) | 4.24 | 4.14 | 0.29 | 0 | 0 | 5.44 |
+| v1 (2.65×) | 4.24 | — | 0.78 | 39 (5.2%) | 16 (2.1%) | **7.40** |
+
+The 16 predictions v1 pushes above 6.5 were 5.12–5.44 pre-expansion (the model's
+top ~2%). v1's tail (2.1% >6.5) is not larger than training's (3.4%), but the
+organizers state CYP2D6 test is **less potent than training** (§23), so even
+training's tail over-states this test — pushing the top compounds to 7.40 is
+expansion in the direction the evidence says is wrong, and partly undoes the −0.5
+location fix that just gained 105 ranks.
+
+**Centering barely matters; the factor is what drives the tail.** At the same 0.85×
+factor, re-centering on the predicted median (4.14) gives max 7.57 / 21 >6.5
+(worse — median < mean stretches the right tail more); on the shifted train mean
+(4.28), max 7.33 / 16 >6.5 (marginally better). None of these fixes the overshoot —
+only lowering the factor does.
+
+**v2 (`regression_disp_v2.parquet`)** keeps CYP1A2/CYP2C9/CYP3A4 at 0.85× but holds
+CYP2D6 to **1.5×**: CYP2D6 std ratio 0.32 → **0.48**, range **[3.55, 6.03]** (1 pred
+>6.0, none >6.5) — modest expansion that respects the downward shift. Both variants:
+Spearman **1.00000** on every isoform.
+
+| iso | v1 (disp) ratio / max | v2 (disp_v2) ratio / max |
+|---|---|---|
+| CYP1A2 | 0.85 / 6.53 | 0.85 / 6.53 |
+| CYP2C9 | 0.85 / 6.55 | 0.85 / 6.55 |
+| CYP2D6 | 0.85 / **7.40** | 0.48 / **6.03** |
+| CYP3A4 | 0.85 / 6.94 | 0.85 / 6.94 |
+
+**Recommendation — spend the next slot on v2, not v1.** v2 tests the dispersion
+hypothesis just as hard on the three isoforms with no known shift (identical 0.85×),
+while avoiding v1's CYP2D6 overshoot into a test region the shift evidence says is
+implausible. Sequencing under the 12-hour cooldown: test v2 first; if it beats
+0.7114, calibration is confirmed AND CYP2D6 stayed safe, and a *later* slot can probe
+a harder CYP2D6 factor; testing v1 first risks a CYP2D6 overshoot masking the real
+gains on the other three. v2 is the lower-variance bet consistent with §23/§24;
+`regression_final` (0.7114) remains the fallback if v2 regresses.
 
 ## Reproduce
 
