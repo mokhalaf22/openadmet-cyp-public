@@ -234,3 +234,28 @@ checked and found absent).
   baseline | submit`. Experiments in `experiments/` are phased and checkpointed.
 - **Disclosures:** no proprietary data was used. PubChem AID 1851 (public) was
   examined and not used in the final model. Code is open-source (this repository).
+
+## 12. External data disclosure
+
+All external data below is public. It is used only as described; no external CYP assay
+value is ever merged into a scored prediction column (per the project's hard rule: each
+`source × isoform × readout` is a separate head, never rescaled into the scored endpoints).
+
+- **PubChem AID 1851 (Veith qHTS)** — examined as an auxiliary head; degraded the model
+  and was dropped (FINDINGS §19). Not in the final model.
+- **ChEMBL and PubChem** — used only to retrieve **structural near-neighbours** of the 750
+  blinded compounds for an unsupervised encoder **warm-start**. Neighbours carry **computed
+  physicochemical properties only — no assay data of any kind** from any source. Admission
+  rule: Tanimoto to the blind set above a floor set so admitted compounds are closer to the
+  blind set than the training set's own mean nearest-neighbour (≈0.50). (FINDINGS §35.)
+- **Octant CYP release** (`openadmet/Octant_CYP_inhibition_reactivity_blog_release`,
+  CC-BY-4.0) — a pre-ingest **leakage check** read **only** SMILES + identifier columns
+  (`ocnt_batch`, `standardized_smiles`); **its assay values were never loaded.** The check
+  found **5 of the 750 blinded test compounds present by exact structure and OCNT identifier**
+  (plus 1 near-duplicate at Tanimoto 0.952) — disclosed to the organizers. **All 6 are
+  quarantined** (`data/octant_quarantine.csv`) from every downstream use: the warm-start
+  corpus and any Octant-derived auxiliary head. Any use of Octant CYP3A4 data is as a
+  **separate auxiliary head only**, and its `CYP3A4_pIC50` is noted as a **different assay
+  condition** (active-enzyme pre-incubation = combined reversible + time-dependent inhibition),
+  a related but distinct endpoint from the scored `CYP3A4_pIC50_direct_inhibition`. (FINDINGS
+  §34, §36.)
