@@ -1394,6 +1394,30 @@ ensembling — can help; threshold/dispersion tuning cannot. Directions, in orde
 predicted-Emax surrogate features (§31a), cross-model +primary ensembling (§31b), and
 a live-board selection protocol (§31c).
 
+### 31a. Predicted-Emax surrogate features — negative (adds noise, not signal)
+
+Extended the predicted-surrogate idea (§25) to Emax: 8 GFOLD-OOF predicted-Emax
+features (4 isoforms × {direct, TDI} arms, `experiments/emax_gfold.py`) added alongside
+the 4 predicted-log2FC and the D-MPNN retrained (`experiments/dmpnn_primary_emax.py`,
+3-seed, same GFOLD). **It hurt both metrics:**
+
+| iso | Spearman +primary → +Emax | ST-RAE +primary → +Emax |
+|---|---|---|
+| CYP1A2 | 0.526 → 0.525 (−0.001) | 0.509 → 0.510 |
+| CYP2C9 | 0.665 → 0.663 (−0.002) | 0.309 → 0.308 |
+| CYP2D6 | 0.440 → **0.416 (−0.024)** | 0.571 → 0.582 |
+| CYP3A4 | 0.784 → 0.781 (−0.003) | 0.269 → 0.272 |
+| **macro** | **0.6037 → 0.5963 (−0.0075)** | **0.4146 → 0.4178 (+0.0032)** |
+
+**Why it failed where predicted-log2FC succeeded.** Emax is only weakly learnable from
+structure (OOF Spearman **0.14–0.30**) vs log2FC's **0.59–0.74** (§25), and it is the
+*same* assay campaign as the pIC50 label (no new assay information), whereas the
+single-conc screen was a genuinely different measurement. Eight weak, redundant features
+diluted the encoder rather than informing it — worst on CYP2D6 (the sparsest/hardest
+isoform). **The predicted-surrogate pattern only pays when the surrogate is (a) strongly
+predictable and (b) from a different assay.** Do not add predicted-Emax. Baseline stays
+D-MPNN+primary (0.415 ST-RAE / 0.6037 macro Spearman).
+
 ### 31b. Cross-model +primary ensembling — marginal on ranking
 
 Blend sweep of the +primary OOF of both models on GFOLD (`experiments/direction2_blend.py`),
@@ -1414,6 +1438,51 @@ predicted-primary feature to *both* models made them converge (rank-corr 0.81–
 the "different errors" that made the pre-primary CYP3A4 blend work (§17) are largely gone.
 Not worth a slot on its own; keep as a possible tie-breaker layered on a better base, not
 a standalone lever. The ranking lever, if there is one, is a better base model (§31a).
+
+### 31c. Live-board as a selection set — a discipline against overfitting the scored half
+
+The board is deterministic (an identical re-upload reproduced every metric to 4 dp) and
+we get ~2 slots/day for 5 weeks (~140 total). That is enough peeks to *manufacture* a
+winner: the board scores only **half** the ~750 test compounds, and the final (2026-11-03)
+scores the full set, so a model that beats on the scored half by chance need not survive.
+The scored half is a random subset, so a board metric is an estimate of the full-set value
+with a generalization gap of order the split standard error — for Spearman at ρ≈0.70 on
+n≈375, SE ≈ (1−ρ²)/√n ≈ **0.026**; for MA-ST-RAE the observed real move was ~0.04 and
+~0.005 was noise (§30). Protocol:
+
+1. **OOF gate before any upload.** A candidate earns a slot only if it *already* shows an
+   OOF improvement above the seed floor on the metric we care about (rank phase: ≥ +0.01
+   macro OOF Spearman). The board **confirms**, it does not **search**. The sole exception
+   is a transform OOF structurally cannot judge — a post-hoc calibration (dispersion,
+   location shift), which is legitimately board-tested because OOF holds it fixed by
+   construction (§27, §30). Directions 1–2 produced no such candidate, so **no ranking slot
+   is spent yet** — the pending queued test (dispersion v3b) is a calibration test, not a
+   ranking one.
+2. **Small candidate budget.** Cap genuine *model* candidates at ≤ ~6–8 over the 5 weeks,
+   not dozens of tweaks. Each board comparison is a hypothesis test; more tests → more
+   false winners. One change at a time (already adopted, §30a) so each result attributes.
+3. **Effect-size threshold, calibrated as we go.** Act on a board move only if it exceeds
+   ~**0.03 Spearman** or ~**0.03 ST-RAE** (≈ the split SE, and above the §30 noise band);
+   treat smaller as a tie and keep the simpler / better-OOF model. Log every upload
+   (file, OOF metric, board metric) and, as the log grows, fit the OOF→board relationship
+   and recalibrate this threshold empirically instead of trusting the a-priori SE.
+4. **Agreement rule for the final pick.** Choose the 2026-11-03 model where OOF **and**
+   board agree; never let a board-only gain (possible half-set overfit) override a contrary
+   OOF signal. Reserve the last cycle before the deadline for a **confirmation re-test** of
+   the chosen model, not a new experiment — and never tune toward the board on the last day.
+5. **Half is a holdout we can never see.** Treat the unscored half as a permanent holdout:
+   the discipline above (OOF gate + effect threshold + agreement rule + small budget) is
+   precisely what keeps the scored half from being silently fit. A model selected by these
+   rules is one whose gain has two independent supports (OOF and board), which is the best
+   available proxy for surviving to the full set.
+
+**Bottom line of §31.** Neither ranking direction moved the ceiling — predicted-Emax hurt
+(§31a), cross-model blending was below noise (§31b). The model's ordering ability
+(OOF Spearman 0.604 / board 0.6965 vs leaders' ~0.78) was **not** improved by these
+features or ensembles, so there is **no ranking candidate worth a slot right now**. The
+lever, if one exists, is a genuinely different representation or more/label-rich
+supervision — not a post-hoc transform and not these two moves. Until such a candidate
+clears the OOF gate, board slots go only to calibration tests (dispersion) under §31c.
 
 ## Reproduce
 
