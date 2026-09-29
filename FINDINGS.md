@@ -1549,9 +1549,23 @@ data we may add. If ranking is pursued further, the next genuinely different att
 different *representation class* (e.g. 3D/conformer or docking-derived features), not another
 2D-graph model.
 
-## Reproduce
+## 33. The untried lever is the loss function (not 3D)
 
-Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
+3D/conformer route **rejected**: no published evidence 3D beats 2D graphs on CYP potency,
+and the challenge's own structure track shows co-folding does poorly on CYP3A4 (pose
+ambiguity) — an ensemble diversifier at best, not the lever. Every model so far optimizes
+absolute error and *hopes* ranking follows; since the goal is now Spearman (§31), optimize
+ranking directly. Plan, in order (report each before the next): (1) pairwise margin term on
+the existing loss (§33a); (2) SQRL-style difference learning on similar pairs (§33b, refs
+arXiv:2501.09103, DeepDelta doi 10.1186/s13321-023-00769-x — keep LightGBM as comparator,
+since SQRL's tuned trees sat near its deep nets); (3) data routes — near-neighbour warm-start
+(§33c, ref github.com/lachrymator/openadmet-cyp-challenge-public ~50k neighbours, macro
+Spearman ~0.83 Butina CV) and the Octant CYP release (~51k, same lab/assay) under a Tanimoto
+filter.
+
+### 33a. Pairwise ranking term
+
+
 `cyp.baseline`, `cyp.twohead`, and `experiments/`. Everything above is derived
 solely from the public challenge dataset (plus PubChem AID 1851 as a disclosed
 external auxiliary source, §19).
