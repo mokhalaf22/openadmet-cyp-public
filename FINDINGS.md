@@ -1647,6 +1647,28 @@ reference). Route #4 (Octant) only touches CYP3A4, carries the leakage risk abov
 rule-constrained to a separate head. **Both cross the external-data hard rules, so work stops
 here to confirm before ingesting anything** rather than proceeding on the standing plan.
 
+## 34. Octant leakage check (step 1, blocking) — OVERLAP FOUND; report to organizers
+
+Downloaded **only** `ocnt_batch` + `standardized_smiles` from the Octant release (5 TSVs,
+12,653 unique structures); **no assay column was ever loaded** (pandas `usecols` restricted to
+the id/SMILES columns). Checked the 750 blinded compounds:
+
+| check | count / 750 |
+|---|---|
+| exact structure (full InChIKey) | **5** |
+| near-duplicate (Tanimoto > 0.95) | **6** (the 5 exact @1.0 + 1 @0.952) |
+| identifier (raw string) | 0 (Octant IDs carry `-AA-00N` batch suffixes) |
+
+**But the 5 exact structural matches also share the OCNT core number** (e.g. blinded
+`OCNT-0493952` ↔ Octant `OCNT-0493952-AA-001`) — so 5 blinded **test** compounds are present in
+the public Octant release by both structure and identifier, and that release carries their
+`CYP3A4_pIC50` labels. This is **test-answer leakage into a public dataset**, not an opportunity
+(rule 3). Per instruction: **reported here for the organizers**, and every matched + near-duplicate
+compound is **quarantined from all downstream use** (Octant aux head §36, and the warm-start
+neighbour corpus §35). Quarantine list (6): `OCNT-0493952, OCNT-2308485, OCNT-2311186,
+OCNT-2312792, OCNT-2314689` (exact) + `OCNT-2534939` (0.952) → `data/octant_quarantine.csv`.
+We did not and will not inspect the Octant assay values for any matched compound.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
