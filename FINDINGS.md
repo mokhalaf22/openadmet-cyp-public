@@ -1502,6 +1502,53 @@ lever, if one exists, is a genuinely different representation or more/label-rich
 supervision — not a post-hoc transform and not these two moves. Until such a candidate
 clears the OOF gate, board slots go only to calibration tests (dispersion) under §31c.
 
+## 32. CheMeleon fine-tuned end-to-end — does not beat the from-scratch D-MPNN
+
+We had only tested CheMeleon frozen (§26). Here we initialized `BondMessagePassing` from
+the checkpoint (d_h=2048, depth=6, V2 featurizer) and fine-tuned it **end-to-end** with the
+interval loss, multi-task across four isoforms + the 4 predicted-log2FC features, GFOLD
+3-seed (`experiments/chemeleon_finetune.py`). Result vs D-MPNN+primary:
+
+| iso | Spearman → | ST-RAE → |
+|---|---|---|
+| CYP1A2 | 0.526 → 0.509 (−0.017) | 0.509 → 0.525 |
+| CYP2C9 | 0.665 → 0.654 (−0.010) | 0.309 → 0.316 |
+| CYP2D6 | 0.440 → 0.428 (−0.013) | 0.571 → 0.584 |
+| CYP3A4 | 0.784 → 0.781 (−0.003) | 0.269 → 0.270 |
+| **macro** | **0.6037 → 0.5930 (−0.0107)** | **0.4146 → 0.4238 (+0.0092)** |
+
+Worse on **every** isoform and metric, consistently across 3 seeds. The fine-tune
+early-stopped very fast (best @ 5–11 epochs) — the 2048-dim pretrained encoder saturates/
+overfits our ~2–3k labels-per-isoform quickly rather than extracting more signal than the
+d_h=200 from-scratch D-MPNN. This is consistent with §8 (the signal is near-linear on ECFP;
+ridge ≈ LightGBM — the ceiling is representational, and a bigger encoder does not lift it)
+and with CheMeleon's own framing that frozen embeddings help most when labels are *very*
+scarce, not at a few thousand.
+
+**Recipe caveat (honest).** Fine-tuned with a single LR (2e-4) for the whole network, no
+discriminative/backbone-vs-head LR or warmup schedule. A more careful schedule *could* change
+the result and is the one un-pulled lever inside this candidate — but the fast early-stop and
+the already-strong from-scratch baseline make a large gain unlikely, and it is not obviously
+worth the compute over other ideas.
+
+### 32a. Phase conclusion — the ranking ceiling is stubborn
+
+Three standard/heavier ranking levers, all tried, none moved the ceiling:
+- predicted-Emax surrogate features — **negative** (§31a, −0.0075 Spearman)
+- cross-model +primary ensembling — **marginal**, below noise (§31b, +0.002)
+- CheMeleon end-to-end fine-tune — **negative** (§32, −0.0107 Spearman)
+
+OOF Spearman stays **0.604** (board 0.6965) vs leaders' ~0.78. The gap is not closable by
+the features/architectures/ensembles available to us here; §8's representational-ceiling
+finding now extends to a pretrained foundation encoder. **No ranking candidate has cleared
+even the weak OOF prior, so no ranking board-slot is warranted** — board slots stay on
+calibration (dispersion) per §31c. Honest read: the remaining gap to the leaders is most
+likely *data* (curation, augmentation, or assay-specific 3D/mechanistic features) rather than
+a model lever we have not yet turned on this feature set — and the challenge rules bound what
+data we may add. If ranking is pursued further, the next genuinely different attempt is a
+different *representation class* (e.g. 3D/conformer or docking-derived features), not another
+2D-graph model.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
