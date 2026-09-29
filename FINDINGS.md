@@ -1382,6 +1382,39 @@ Fallback if v3b regresses: `regression_disp_v2` (0.6683).
 held MA-MCC 0.3097 (§30). Both files — `regression_disp_v3b.parquet` and
 `classification.parquet` — are validated and ready for the ~07:51 UTC cooldown window.
 
+## 31. Next phase — the goal is Spearman, not ST-RAE
+
+Calibration is close to spent. Dispersion (§30) and the CYP2D6 location shift (§27)
+were post-hoc corrections that leave **ranking untouched** — every dispersion variant
+holds Spearman fixed at **0.6965** by construction. The leaders sit at **~0.78
+Spearman**, so the remaining gap is the *model's ability to order compounds*, which no
+post-hoc transform can move. **From here, every experiment is judged on OOF Spearman
+first, ST-RAE second.** Only changes to the underlying model — features, architecture,
+ensembling — can help; threshold/dispersion tuning cannot. Directions, in order:
+predicted-Emax surrogate features (§31a), cross-model +primary ensembling (§31b), and
+a live-board selection protocol (§31c).
+
+### 31b. Cross-model +primary ensembling — marginal on ranking
+
+Blend sweep of the +primary OOF of both models on GFOLD (`experiments/direction2_blend.py`),
+Spearman first:
+
+| iso | D-MPNN ρ | LGBM ρ | rank-corr(dm,lg) | best blend ρ (w=D-MPNN) |
+|---|---|---|---|---|
+| CYP1A2 | 0.526 | 0.508 | 0.889 | 0.534 (w=0.5) |
+| CYP2C9 | 0.665 | 0.614 | 0.940 | 0.665 (w=1.0) |
+| CYP2D6 | 0.440 | 0.377 | 0.810 | 0.441 (w=0.75) |
+| CYP3A4 | 0.784 | 0.772 | 0.968 | 0.786 (w=0.75) |
+
+macro OOF Spearman by w: 0.5676 (LGBM) → 0.6008 (0.5) → **0.6052 (0.75)** → 0.6037
+(D-MPNN). Per-isoform best-Spearman blend: **0.6064** vs D-MPNN-only 0.6037.
+
+**Verdict: +0.0015–0.0027 macro Spearman — below the half-set noise floor.** Adding the
+predicted-primary feature to *both* models made them converge (rank-corr 0.81–0.97), so
+the "different errors" that made the pre-primary CYP3A4 blend work (§17) are largely gone.
+Not worth a slot on its own; keep as a possible tie-breaker layered on a better base, not
+a standalone lever. The ranking lever, if there is one, is a better base model (§31a).
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
