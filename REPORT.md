@@ -261,3 +261,25 @@ value is ever merged into a scored prediction column (per the project's hard rul
   condition** (active-enzyme pre-incubation = combined reversible + time-dependent inhibition),
   a related but distinct endpoint from the scored `CYP3A4_pIC50_direct_inhibition`. (FINDINGS
   §34, §36.)
+
+## 13. Structural limit: the blinded set is Enamine chemistry, largely absent from public data
+
+A single structural fact governs what external data can do here: **the blinded test set is
+Enamine make-on-demand catalogue chemistry, which public bioactivity databases barely cover.**
+Three independent measurements:
+
+- **PubChem AID 1851 (Veith qHTS):** the blinded compounds' nearest-neighbour ECFP4 Tanimoto to
+  this 17k-compound CYP panel is only **median 0.368**.
+- **ChEMBL + PubChem 70% similarity search across all 750 blinded compounds** returns only **324
+  unique neighbours** (many queries return zero).
+- **Blind anchor density at Tanimoto 0.7 is 13.3%** — 87% of the blind set has no near neighbour
+  even after retrieval.
+
+This one fact explains every external-data and ranking-transfer result, which are otherwise a
+confusing list of nulls: the AID 1851 auxiliary heads degraded the model (§8) because that
+chemistry is distant; difference learning (SQRL/DeepDelta) was anchor-starved and could not be
+built (needs dense neighbours that do not exist); the physicochemical warm-start was null (the
+neighbour corpus is only 324). **The methods were not wrong — the relevant public data does not
+exist.** Closing the remaining ranking gap to the leaders would require measured data on
+compounds structurally near this specific Enamine expansion, which is not publicly available;
+within the public-data envelope, the model's ordering is at its representational ceiling.
