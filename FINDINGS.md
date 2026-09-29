@@ -1563,9 +1563,93 @@ since SQRL's tuned trees sat near its deep nets); (3) data routes — near-neigh
 Spearman ~0.83 Butina CV) and the Octant CYP release (~51k, same lab/assay) under a Tanimoto
 filter.
 
-### 33a. Pairwise ranking term
+### 33b. SQRL/DeepDelta difference learning — anchor-starved on internal data (gated on §33c)
 
+Before building the pair model, checked its precondition: SQRL similar-pair learning
+(Tanimoto ≈ 0.7, within isoform) needs near-neighbour anchors, and at inference an absolute
+prediction is reconstructed from a test compound's training neighbours. Scaffold splits
+*remove* those neighbours by construction. Measured ≥0.7 coverage:
 
+| | ≥0.7 train-neighbour coverage |
+|---|---|
+| GFOLD OOF (per isoform) | 0.0–2.4% |
+| Blinded 750 (per isoform) | 2.9–6.1% |
+| train self mean nearest-neighbour | Tanimoto ≈ 0.50 |
+
+>93% of blinded compounds have **no** ≥0.7 internal anchor, so the reconstruction falls back
+to the direct model for ~95% of compounds — and direct ranking optimization is already null
+(§33a). SQRL's published +0.25–0.43 gains are on ChEMBL under dense-neighbour (random-CV)
+conditions; our scaffold-disjoint, self-similarity-0.50 data is the opposite regime. **The
+method cannot deliver here on internal data alone — its precondition (anchor density) is
+exactly what route §33c/#3–4 provides** (retrieve external near-neighbours). So difference
+learning is not abandoned; it is *gated on the data route* and re-evaluated there. Building
+the internal-only pair model was correctly skipped as a guaranteed fallback-to-direct.
+
+### 33a. Pairwise ranking term — null
+
+`total = interval_hinge + λ·pairwise_margin` (within-batch same-isoform ordered pairs,
+margin 0.1), swept λ ∈ {0.1, 0.5, 1.0}, D-MPNN+primary / GFOLD / 3-seed
+(`experiments/dmpnn_pairwise.py`):
+
+| λ | macro Spearman | macro ST-RAE |
+|---|---|---|
+| baseline | 0.6037 | 0.4146 |
+| 0.1 | 0.6028 (−0.0009) | 0.4152 (+0.0006) |
+| 0.5 | 0.6018 (−0.0020) | 0.4177 (+0.0031) |
+| 1.0 | 0.6020 (−0.0017) | 0.4209 (+0.0063) |
+
+**Flat-to-slightly-negative on Spearman at every λ, ST-RAE mildly worse** — all inside the
+seed floor. Adding an explicit ranking regularizer to the *same* representation does not
+extract more ordering: the bottleneck is representational (§32a), not the loss's
+ranking-awareness. This does **not** by itself predict #2's outcome — SQRL/DeepDelta change
+the learning *target* (Δproperty between similar pairs, a data multiplier + local-ranking
+focus), a different mechanism from a ranking regularizer on absolute-error training. Proceeding
+to §33b.
+
+### 33c. Data routes — read first; governance flags before any ingest
+
+**Reference writeup (github.com/lachrymator/openadmet-cyp-challenge-public), actual numbers
+(correcting the brief):** retrieved **88,683** catalogue near-neighbours → admitted **4,999**
+closest (threshold = closer than training's mean NN distance), labelled with **computed
+physicochemical properties only, no assay**; warm-start = "masked multi-task pretraining on
+public bioactivity, warm-starting each backbone before the high-fidelity fine-tune". Reported
+**CV macro MAE 0.447 / R² 0.688 / Spearman NaN**; **blind interim Spearman 0.747**. It is an
+**ensemble** (SMILES transformers + MPNNs + 3D + tabular-ICL + fingerprint + fragment) and is
+**write-up only — no code.** The "~0.83 macro Spearman / >50k neighbours" I was pointed to is
+**not** what the writeup states: admitted neighbours are ~5k and the demonstrated blind
+Spearman is **0.747** — only ~+0.05 over our 0.6965, spread across a whole ensemble, not
+attributable to the neighbour warm-start alone. Reset expectations accordingly.
+
+**Octant release (openadmet/Octant_CYP_inhibition_reactivity_blog_release, CC-BY-4.0):** 51,414
+rows, but the CYP panel is **CYP3A4 and CYP2J2** — only **CYP3A4** overlaps our four isoforms
+(nothing for 1A2/2C9/2D6). Readout `CYP3A4_pIC50` is under **active-enzyme pre-incubation
+(combined reversible + time-dependent)** — a **different assay condition** than our scored
+`direct_inhibition` pIC50. Identifiers are `ocnt_batch`; **our blinded IDs are `OCNT-…`** — the
+same Octant/OCNT namespace, i.e. **same lab**.
+
+**Governance (blocking — per CLAUDE.md rules 1–3):**
+1. **Leakage risk, verify first.** Same OCNT namespace ⇒ the 750 blinded compounds may be
+   present in the Octant release *with CYP3A4 labels*. Using those = reading the answer key
+   (rule 3). Before any Octant use, verify zero overlap between Octant and the 750 blinded
+   SMILES and drop near-duplicates.
+2. **No merge into scored columns.** Octant `CYP3A4_pIC50` is a different condition → rule 2:
+   its own source×readout head, never merged/rescaled into scored
+   `CYP3A4_pIC50_direct_inhibition`; usable only as a separate aux head or predicted-surrogate
+   feature (§25 pattern).
+3. **Disclosure.** Any external data (Octant or catalogue neighbours) must be disclosed;
+   CC-BY needs attribution.
+
+**Recommendation.** Route #3 (physchem-only catalogue-neighbour warm-start) is the rule-clean,
+difference-learning-enabling step (§33b), but it is a real data-engineering build (pick a public
+catalogue, retrieve ~10⁵ neighbours, filter by the training-NN-distance floor, compute properties,
+masked-pretrain the encoder) with a now-modest expected payoff (~+0.05 blind Spearman by the
+reference). Route #4 (Octant) only touches CYP3A4, carries the leakage risk above, and is
+rule-constrained to a separate head. **Both cross the external-data hard rules, so work stops
+here to confirm before ingesting anything** rather than proceeding on the standing plan.
+
+## Reproduce
+
+Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
 `cyp.baseline`, `cyp.twohead`, and `experiments/`. Everything above is derived
 solely from the public challenge dataset (plus PubChem AID 1851 as a disclosed
 external auxiliary source, §19).
