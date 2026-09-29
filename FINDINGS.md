@@ -1689,7 +1689,33 @@ model would still fall back to direct prediction for ~87% of the blind set, so i
 per the step-3 rule rather than built. Difference learning here requires an Enamine-REAL-scale
 neighbour corpus we do not have.
 
-**Warm-start result:**
+**Warm-start result — null-to-negative.** Pretrained the D-MPNN encoder on 8 computed
+physicochemical descriptors over the 324 corpus, then fine-tuned D-MPNN+primary (GFOLD
+3-seed, `experiments/warmstart_finetune.py`):
+
+| iso | Spearman → | ST-RAE → |
+|---|---|---|
+| CYP1A2 | 0.526 → 0.528 (+0.002) | 0.509 → 0.509 |
+| CYP2C9 | 0.665 → 0.664 (−0.001) | 0.309 → 0.315 |
+| CYP2D6 | 0.440 → 0.415 (−0.025) | 0.571 → 0.584 |
+| CYP3A4 | 0.784 → 0.781 (−0.003) | 0.269 → 0.273 |
+| **macro** | **0.6037 → 0.5969 (−0.0068)** | **0.4146 → 0.4200 (+0.0054)** |
+
+No help (slightly worse, within noise, driven by CYP2D6). 324 physchem-labelled compounds
+are too thin to warm-start usefully, and the D-MPNN already learns physchem from structure.
+**Step 2 verdict: the physchem near-neighbour warm-start does not move ranking from
+ChEMBL/PubChem-sourced neighbours** — the route is bottlenecked on neighbour availability
+(Enamine REAL), not on the warm-start mechanism.
+
+## 35a. Phase-2 (loss + data) conclusion
+
+Every loss/data ranking lever tried is null or gated out: pairwise term (§33a, null),
+SQRL difference learning (§33b/§35, anchor-starved → gated out at 13.3%), physchem
+warm-start (§35, −0.007). Combined with §32a (predicted-Emax, cross-model blend, CheMeleon
+fine-tune all null), **no available lever moves OOF Spearman off ~0.604.** The one untried
+enabler is an **Enamine-REAL-scale near-neighbour corpus**, which is the precondition for
+both difference learning and a meaningful warm-start; without it, ranking is at its ceiling
+for this feature set. Calibration (dispersion) remains the only confirmed live-board lever.
 
 ## Reproduce
 

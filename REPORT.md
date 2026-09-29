@@ -247,7 +247,9 @@ value is ever merged into a scored prediction column (per the project's hard rul
   blinded compounds for an unsupervised encoder **warm-start**. Neighbours carry **computed
   physicochemical properties only — no assay data of any kind** from any source. Admission
   rule: Tanimoto to the blind set above a floor set so admitted compounds are closer to the
-  blind set than the training set's own mean nearest-neighbour (≈0.50). (FINDINGS §35.)
+  blind set than the training set's own mean nearest-neighbour (≈0.50). Yielded only 324
+  admitted neighbours (blind anchor density @0.7 = 13.3%); the physchem warm-start did not
+  improve ranking (−0.007 macro OOF Spearman). (FINDINGS §35.)
 - **Octant CYP release** (`openadmet/Octant_CYP_inhibition_reactivity_blog_release`,
   CC-BY-4.0) — a pre-ingest **leakage check** read **only** SMILES + identifier columns
   (`ocnt_batch`, `standardized_smiles`); **its assay values were never loaded.** The check
