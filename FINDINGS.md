@@ -1717,6 +1717,53 @@ enabler is an **Enamine-REAL-scale near-neighbour corpus**, which is the precond
 both difference learning and a meaningful warm-start; without it, ranking is at its ceiling
 for this feature set. Calibration (dispersion) remains the only confirmed live-board lever.
 
+## 36. Octant CYP3A4 auxiliary head (step 4) — non-viable: it IS the challenge data
+
+With the 6 leaked compounds quarantined, we went to build the Octant `CYP3A4_pIC50` as a
+separate auxiliary head. On loading the labels (authorized now the leakage check was done):
+the Octant `inhibition` subset has **1,084 unique structures with CYP3A4_pIC50, of which 1,076
+(99.3%) are challenge train/test compounds** — only **8 are truly external**. The Octant
+inhibition release is essentially the challenge's *own* CYP3A4 campaign (same lab, same assay),
+which is also why 5 blinded compounds leaked into it (§34).
+
+**No aux head built** — 8 external compounds cannot seed one, and re-adding challenge compounds
+under a different label would violate the separate-head rule. There is **no external CYP3A4
+pIC50 augmentation in existence** here; Octant is the same data, not new data. This sharpens
+§13: even the "same lab" release adds nothing, because it is not additional chemistry — it is
+the same chemistry. (Octant assay values for the 6 quarantined compounds were never loaded; the
+label read here was filtered to non-quarantined structures only.)
+
+## 37. Ranking phase closed — 14 experiments, one structural cause
+
+Fourteen model/feature/ranking experiments since the phase-2 baseline. Only **one** moved the
+underlying model; the rest are null, and a single structural fact (§13) explains why.
+
+| # | experiment | § | effect on macro (Spearman / ST-RAE) | verdict |
+|---|---|---|---|---|
+| 1 | interval two-head vs point loss | 14 | ST-RAE 0.445→0.434 | ✓ adopted |
+| 2 | width-weighted pull | 14 | ~0 | dropped |
+| 3 | shift_prior / derived-label vs classifier | 15 | worse MCC | classifier kept |
+| 4 | CYP3A4 D-MPNN/LightGBM blend | 17 | ST-RAE −0.007 | ✓ (pre-primary) |
+| 5 | **predicted-primary-screen feature** | 25/26a | **Spearman +0.065-ish vs base, ST-RAE −0.036** | ✓✓ the lever |
+| 6 | tabular-FM CheMeleon+TabICL (frozen) | 26 | ST-RAE +0.011 (reduced variant) | not better |
+| 7 | predicted-Emax surrogate | 31a | Spearman −0.008 | null |
+| 8 | cross-model +primary blend | 31b | Spearman +0.002 | below noise |
+| 9 | CheMeleon end-to-end fine-tune | 32 | Spearman −0.011 | null |
+| 10 | pairwise ranking loss (λ sweep) | 33a | Spearman ≈ −0.002 | null |
+| 11 | SQRL/DeepDelta difference learning | 33b/35 | — | gated out (anchors 13%) |
+| 12 | physchem near-neighbour warm-start | 35 | Spearman −0.007 | null |
+| 13 | ChEMBL/PubChem neighbour retrieval | 35 | 324 neighbours | data absent |
+| 14 | Octant CYP3A4 aux head | 36 | — | non-viable (99.3% overlap) |
+
+**The structural cause (§13):** the blinded set is Enamine catalogue chemistry public data barely
+covers — AID 1851 median Tanimoto 0.368, ChEMBL+PubChem @70% → 324 neighbours, blind anchor
+density @0.7 = 13.3%, and even the same-lab Octant release is the challenge's own compounds, not
+new ones. Every external-data and ranking-transfer lever failed for the *same* reason: **the
+compounds that would inform the blind set have no public measured data.** Our OOF Spearman is at
+its representational ceiling (~0.604; board 0.6965) within the public-data envelope. **Ranking
+phase closed.** The only confirmed live-board lever remains calibration (dispersion, §30); the
+remaining slots go there and to the report.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
