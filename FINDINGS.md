@@ -1450,14 +1450,32 @@ with a generalization gap of order the split standard error — for Spearman at 
 n≈375, SE ≈ (1−ρ²)/√n ≈ **0.026**; for MA-ST-RAE the observed real move was ~0.04 and
 ~0.005 was noise (§30). Protocol:
 
-1. **OOF gate before any upload.** A candidate earns a slot only if it *already* shows an
-   OOF improvement above the seed floor on the metric we care about (rank phase: ≥ +0.01
-   macro OOF Spearman). The board **confirms**, it does not **search**. The sole exception
-   is a transform OOF structurally cannot judge — a post-hoc calibration (dispersion,
-   location shift), which is legitimately board-tested because OOF holds it fixed by
-   construction (§27, §30). Directions 1–2 produced no such candidate, so **no ranking slot
-   is spent yet** — the pending queued test (dispersion v3b) is a calibration test, not a
-   ranking one.
+1. **OOF is a weak prior for ranking, NOT a validated gate** (revised — see calibration
+   below). Rule 1 originally gated uploads on ≥ +0.01 macro OOF Spearman, assuming OOF
+   *differences* track board differences. Tested against the four submissions with both
+   numbers:
+
+   | model | OOF Spearman | board Spearman |
+   |---|---|---|
+   | LightGBM baseline | 0.5392 | 0.6336 |
+   | D-MPNN+primary (= regression_final = disp_v2 = disp_v3b) | 0.6037 | 0.6965 |
+
+   The three dispersion/location variants share per-isoform ranking *exactly* (pairwise
+   Spearman 1.0), so they collapse to one point — **we have only two independent points.**
+   The single observable difference agrees well (ΔOOF +0.065, ΔBoard +0.063) and OOF is
+   pessimistic in *level* by ~0.09 on both (the hit-expansion test set is easier to rank
+   than scaffold OOF). **What can be concluded:** the one large move we can see tracks. **What
+   cannot:** that a *small* OOF Spearman difference (e.g. +0.01) survives to the board — the
+   gate is calibrated on exactly one point, and it was 6× larger than the gate. So a flat or
+   slightly-negative OOF Spearman is **not** strong evidence against a board gain, especially
+   since OOF understates ranking. Revised rule: spend a ranking slot when **either** a
+   credible OOF Spearman gain **or** a strong mechanistic prior (pretrained init, a
+   known-stronger method) exists; do **not** reject a mechanistically-motivated candidate on a
+   flat OOF Spearman alone. Overfitting is held back by the budget (rule 2), the board
+   effect-size threshold (rule 3), and the agreement rule (rule 4) — not by a hard OOF gate.
+   Post-hoc calibration transforms (dispersion, location) remain board-tested because OOF
+   holds them fixed by construction (§27, §30). Consequence: the CheMeleon end-to-end
+   fine-tune (§32) earns a board test on its mechanistic prior even if its OOF gain is modest.
 2. **Small candidate budget.** Cap genuine *model* candidates at ≤ ~6–8 over the 5 weeks,
    not dozens of tweaks. Each board comparison is a hypothesis test; more tests → more
    false winners. One change at a time (already adopted, §30a) so each result attributes.
