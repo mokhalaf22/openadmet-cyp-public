@@ -1669,6 +1669,28 @@ neighbour corpus §35). Quarantine list (6): `OCNT-0493952, OCNT-2308485, OCNT-2
 OCNT-2312792, OCNT-2314689` (exact) + `OCNT-2534939` (0.952) → `data/octant_quarantine.csv`.
 We did not and will not inspect the Octant assay values for any matched compound.
 
+## 35. Physchem near-neighbour warm-start (step 2)
+
+**Corpus (step 2A/B, `experiments/retrieve_neighbors.py` → `build_corpus.py`).** Queried
+ChEMBL (@70%) and PubChem fastsimilarity (@70%) for all 750 blinded compounds, structures
+only. After canonicalizing and excluding challenge train/test + the §34 quarantine (by
+InChIKey), and admitting max-Tanimoto-to-blind > 0.50:
+
+- **admitted corpus: 324 compounds** (318 at ≥0.7, 57 at ≥0.8)
+- **blind anchor density @ Tanimoto 0.7: 13.3%** (100/750), up from ~3–6% internal (§33b)
+
+Only 324 — the blinded compounds are **Enamine-catalogue chemistry that public bioactivity
+DBs (ChEMBL/PubChem) barely cover** (many blinded queries returned 0 neighbours). The
+reference's ~5k neighbours (§33c) must have come from a make-on-demand catalogue (Enamine
+REAL), not ChEMBL/PubChem.
+
+**Step 3 (SQRL difference learning) is GATED OUT.** Density 13.3% < ~30% threshold — a pair
+model would still fall back to direct prediction for ~87% of the blind set, so it is **skipped**
+per the step-3 rule rather than built. Difference learning here requires an Enamine-REAL-scale
+neighbour corpus we do not have.
+
+**Warm-start result:**
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
