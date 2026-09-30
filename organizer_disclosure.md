@@ -24,8 +24,13 @@ Specifically, of the 750 blinded regression test compounds:
 - **1 additional near-duplicate** at Tanimoto 0.952:
   - OCNT-2534939
 
-We quarantined all 6 compounds from any downstream use and did **not** inspect the matched
-assay values. We only read structure and identifier columns during the check.
+For context on those 5 matches: of the 1,084 compounds carrying `CYP3A4_pIC50` in that
+release, 1,076 match challenge train or test compounds by structure. The release therefore
+appears to contain the challenge's own CYP3A4 campaign rather than independent data.
+
+We quarantined all 6 compounds from any downstream use, stopped there, and built nothing from
+this release. We did **not** inspect the matched assay values; we only read structure and
+identifier columns during the check.
 
 Flagging this in case it is useful for the challenge. We are happy to share the quarantine
 list if that helps.
