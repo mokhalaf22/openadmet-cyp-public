@@ -1764,6 +1764,27 @@ its representational ceiling (~0.604; board 0.6965) within the public-data envel
 phase closed.** The only confirmed live-board lever remains calibration (dispersion, §30); the
 remaining slots go there and to the report.
 
+## 38. Live-board round 3 — dispersion v3b improved again (rank 83 → 77)
+
+`regression_disp_v3b.parquet` (CYP1A2/2C9/3A4 → 1.0× training spread, CYP2D6 held 0.85×,
+§30a) uploaded:
+
+| metric | before (disp_v2) | after (disp_v3b) |
+|---|---|---|
+| MA-ST-RAE | 0.6683 | **0.6411** |
+| MAE | 0.8689 | **0.8394** |
+| R² | 0.3041 | **0.3477** |
+| Spearman | 0.6965 | 0.6965 (unchanged, by design) |
+| rank | 83 | **77** |
+
+Full-spread expansion on the three no-shift isoforms (CYP2D6 kept gentler per §23/§24)
+cut ST-RAE another 0.027 and lifted R² to 0.3477 — the isolated confirmed lever (§30a)
+worked, and the CYP2D6 caution held (no regression there). Regression sequence to date:
+**0.9356 → 0.7114 → 0.6683 → 0.6411** (rank 200 → 95 → 83 → 77), ranking fixed at 0.6965
+throughout — every gain since the base model is calibration, consistent with §37 (ranking
+is at the representational ceiling). Next calibration probe per §30a: CYP2D6 at 1.0× alone,
+to finish the clean attribution.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,

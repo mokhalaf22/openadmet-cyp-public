@@ -14,9 +14,10 @@ The remaining gap to the leaders is a property of the **data**, not the method: 
 compounds are Enamine make-on-demand chemistry with almost no public measured data, so every
 external-data and ranking-transfer lever fails for the same reason.
 
-- **Regression (blind, live board):** MA-ST-RAE **0.9356 → 0.7114 → 0.6683** (rank **200 → 95 →
-  83**) as we added the final model, a validated CYP2D6 location correction, and a dispersion
-  calibration. Ranking (Spearman ≈ 0.70) is at the representational ceiling.
+- **Regression (blind, live board):** MA-ST-RAE **0.9356 → 0.7114 → 0.6683 → 0.6411** (rank
+  **200 → 95 → 83 → 77**) as we added the final model, a validated CYP2D6 location correction, and
+  two dispersion calibrations. Current board: MAE 0.8394, R² 0.3477, Spearman 0.6965 — ranking is
+  at the representational ceiling; the gains are calibration.
 - **TDI classification (blind):** MA-MCC **0.273 → 0.3097** (rank **73 → 59**) after a threshold
   fix. Tightening further *lost* MCC — the leaders win by discrimination, not by a tighter cut.
 - **What moved the model:** the interval formulation (recovered a CYP3A4 gap capacity could not)
@@ -24,9 +25,13 @@ external-data and ranking-transfer lever fails for the same reason.
 - **What did not, and why:** bigger models, foundation-model fine-tuning, auxiliary assays,
   difference learning, and external neighbours were all null — because the relevant public data
   does not exist (§5).
+- **Test-set leakage in a same-lab public release (a finding in its own right).** A pre-ingest
+  structure-level check found **5 of the 750 blinded test compounds present in the Octant release**
+  (same lab as the challenge) by exact structure and OCNT identifier, with CYP3A4 labels attached;
+  the release is 99.3% the challenge's own compounds. All 6 overlaps (incl. one near-duplicate)
+  were quarantined and the overlap disclosed to the organizers; nothing was built from it (§9).
 - **No proprietary data.** Public sources (AID 1851, ChEMBL/PubChem, the Octant release) were
-  examined and disclosed; a pre-ingest leakage check found and quarantined 5 blinded test
-  compounds present in a same-lab public release (§9).
+  examined and disclosed.
 
 ## 1. Data, provenance, and conventions
 
@@ -126,11 +131,14 @@ story is a reusable lesson in OOF-vs-blind divergence.
   are less potent than training (the test excluded CYP2D6 hit-expansion). A −0.5 location
   correction — validated on a shifted-eval simulation (§24) — directly targets this and was
   confirmed on the board.
-- **Dispersion: an OOF-unjudgeable gamble that paid.** Because dispersion preserves ranking, OOF
-  (which we score on ranking-sensitive ST-RAE at fixed scale) structurally cannot evaluate it.
+- **Dispersion: an OOF-unjudgeable gamble that paid, twice.** Because dispersion preserves ranking,
+  OOF (which we score on ranking-sensitive ST-RAE at fixed scale) structurally cannot evaluate it.
   Expanding predictions toward the training spread, ranking held fixed (Spearman invariant), cut
-  blind MA-ST-RAE **0.7114 → 0.6683** and R² 0.2495 → 0.3041 (rank 95 → 83; FINDINGS §30).
-  Compression was costing us, not encoding honest uncertainty.
+  blind MA-ST-RAE **0.7114 → 0.6683** (0.85× spread; rank 95 → 83), and a second expansion to full
+  training spread on the three isoforms with no known distribution shift (CYP2D6 held gentler, per
+  §24) cut it further to **0.6411** (rank 83 → 77; MAE 0.8394, R² 0.2495 → **0.3477**, Spearman
+  unchanged at 0.6965; FINDINGS §30, §30a). Compression was costing us, not encoding honest
+  uncertainty.
 
 We codified a **live-board discipline** to avoid overfitting the scored half (FINDINGS §31c): OOF
 is a weak prior (calibrated on only two independent points), act only on board moves above the
@@ -163,8 +171,11 @@ classifier; the leaders reach their operating point by discrimination, not a tig
   only when it is *strongly learnable from structure* **and** from a *different assay*;
 - **post-hoc dispersion** + a **validated location shift** for a known target-distribution shift,
   tested on the board under the §6 discipline;
-- a **leakage check before any same-lab external data** (it found 5 test compounds in a public
-  release, §9).
+- **a structure-level leakage check before ingesting any external data** — and, as a standing
+  rule: **when a challenge is run by a lab that also publishes datasets, check its public releases
+  for the blinded test compounds (by canonical structure/InChIKey, not just identifiers) before
+  using anything.** Here that check found 5 test compounds with labels in a same-lab release (§9);
+  quarantine every match and near-duplicate, and disclose.
 
 **Do not bother (on this benchmark, with public data):**
 - distant external assays as auxiliary heads (AID 1851 — chemical-space overlap gates usefulness);
