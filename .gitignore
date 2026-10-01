@@ -33,3 +33,6 @@ experiments/octant_leak/
 
 # Internal disclosure draft (names leaked test compounds; send, do not publish)
 organizer_disclosure.md
+
+# Torch checkpoints
+*.pt
