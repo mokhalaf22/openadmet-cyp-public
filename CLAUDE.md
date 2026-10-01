@@ -6,7 +6,7 @@ file here is world-readable.
 
 ## Hard rules
 
-1. **Nothing from the ESP / point-cloud project enters this repo.** Not code,
+1. **Nothing from unrelated unpublished lab work enters this repo.** Not code,
    not results, not comparisons, not a sentence in a README. That work is
    unpublished lab IP. If a task seems to need it, stop and ask.
 2. **Never merge external CYP data into the scored pIC50 columns.** External
