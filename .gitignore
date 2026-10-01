@@ -24,3 +24,12 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ipynb_checkpoints/
+
+# Experiment data intermediates (external SMILES / labels / retrieval caches — never redistribute)
+experiments/*.csv
+experiments/*.log
+experiments/neighbors_cache/
+experiments/octant_leak/
+
+# Internal disclosure draft (names leaked test compounds; send, do not publish)
+organizer_disclosure.md
