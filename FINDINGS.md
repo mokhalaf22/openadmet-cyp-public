@@ -1819,6 +1819,32 @@ attempt: 324 compounds / 13.3% (§35). **Gate passes** (bars: ≥10,000 and ≥4
    Effect on the gate: corpus 57,191 → **111,361**, density 64.4% → **90.3%**, median NN
    0.766 → **0.818**. The buggy output is kept as `experiments/gate1_vetobug.json`.
 
+### 39a. Where the corpus sits — it does NOT bridge training and blinded
+
+Nearest-neighbour ECFP4 (Morgan r=2, 2048) from each query set to the corpus
+(`experiments/corpus_similarity.py`, results in `corpus_similarity.json`):
+
+| from → to | median NN | mean NN | ≥0.7 | ≥0.5 | p10 | p90 |
+|---|---|---|---|---|---|---|
+| **blinded → corpus** | **0.818** | 0.810 | **90.3%** | 97.5% | 0.703 | 0.981 |
+| **training → corpus** | **0.406** | 0.421 | **2.2%** | 17.7% | 0.318 | 0.542 |
+| training → blinded | 0.294 | 0.311 | 0.7% | 4.2% | 0.231 | 0.404 |
+| blinded → training | 0.587 | 0.598 | 10.3% | 95.7% | 0.516 | 0.702 |
+
+**The corpus is centred on the blinded set, not between the two** (gap +0.412 in median NN).
+That is unsurprising — it was retrieved *by querying the blinded compounds* — but it is the
+unfavourable configuration for a warm start: pretraining pulls the encoder toward a region
+where we hold **no labels**, and the DRC fine-tune's gradient comes entirely from the training
+region, 0.406 away. Catastrophic forgetting of the pretrained representation is the live risk,
+not a hypothetical one.
+
+The table also restates the benchmark's core geometry sharply: **training → blinded median NN is
+only 0.294, with 0.7% of training compounds having a blinded neighbour ≥0.7.** Train and test are
+near-disjoint chemical regions (consistent with §10's 0.587 blinded→training figure, which is the
+*reverse* direction and flatters the overlap). The corpus covers the test region densely and the
+training region barely — so it is better understood as *unlabelled test-region coverage* than as a
+bridge.
+
 This is the first external-data result that contradicts §13's pessimism in one specific respect:
 near neighbours of the blinded set *do* exist in make-on-demand catalogue space (Enamine REAL),
 even though they are absent from public **bioactivity** databases. They remain **unlabelled** —
