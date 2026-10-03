@@ -296,6 +296,7 @@ def main() -> None:
     ap.add_argument("--dry", action="store_true", help="show planned/completed steps only")
     ap.add_argument("--ledger", action="store_true", help="rewrite LEDGER.md and print the tail")
     args = ap.parse_args()
+    sys.stdout.reconfigure(line_buffering=True)  # unattended runs must show progress live
     sys.path.insert(0, str(ROOT / "experiments"))
     if args.ledger:
         write_ledger_md()

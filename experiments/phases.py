@@ -35,8 +35,14 @@ PHASES: dict[str, dict] = {
         "steps": [
             {
                 "name": "deps",
-                "run": f"{PY} -m pip install -q smallworld-api rd-filters",
-                "config": {"packages": ["smallworld-api", "rd-filters"]},
+                "run": f"{PY} -m pip install -q smallworld-api useful_rdkit_utils",
+                "config": {
+                    "packages": ["smallworld-api", "useful_rdkit_utils"],
+                    "note": ("rd_filters is not on PyPI (GitHub-only); useful_rdkit_utils ships "
+                             "the same REOS alert catalogs (Glaxo, Dundee, BMS, PAINS, SureChEMBL, "
+                             "MLSMR, Inpharmatica, LINT) with per-rule drop_rule(), which the "
+                             "subtractive veto needs."),
+                },
             },
             {
                 "name": "sw_probe",
