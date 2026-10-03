@@ -73,22 +73,28 @@ def _veto_rules(blinded_mols):
     reos = uru.REOS()
     reos.set_active_rule_sets(list(reos.get_available_rule_sets()))
     dropped: list[str] = []
-    for _ in range(200):  # convergence: process_mol reports only the first match
+    # process_mol returns (rule_set_name, description) when an alert fires, and ('ok','ok')
+    # when it passes. drop_rule() keys on the DESCRIPTION, so the veto must use res[1] --
+    # passing res[0] (the set name) silently drops nothing and vetoes no alert at all.
+    for _ in range(500):  # iterate: only the first matching alert per molecule is reported
         firing = set()
         for m in blinded_mols:
             try:
                 res = reos.process_mol(m)
             except Exception:
                 continue
-            rule = res[0] if isinstance(res, (tuple, list)) and res else None
-            if rule and str(rule).lower() not in ("ok", "none"):
-                firing.add(str(rule))
+            if not (isinstance(res, (tuple, list)) and len(res) >= 2):
+                continue
+            rule_set, desc = str(res[0]), str(res[1])
+            if desc.lower() in ("ok", "none") or rule_set.lower() == "ok":
+                continue
+            firing.add(desc)
         if not firing:
             break
-        for r in firing:
+        for desc in firing:
             try:
-                reos.drop_rule(r)
-                dropped.append(r)
+                reos.drop_rule(desc)
+                dropped.append(desc)
             except Exception:
                 pass
     return reos, dropped
