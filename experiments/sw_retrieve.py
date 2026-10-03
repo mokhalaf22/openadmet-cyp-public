@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import signal
 import time
 from pathlib import Path
 
@@ -30,6 +31,16 @@ DIST = 4        # SmallWorld graph-edit distance: close analogues
 LENGTH = 200    # hits requested per query (filtered by ECFP4 later, in corpus_filter)
 PACE_S = 1.0    # politeness between queries
 RETRIES = 3
+QUERY_TIMEOUT_S = 150  # hard watchdog: the client has no request timeout, so a hung
+                       # socket would otherwise block an unattended run indefinitely
+
+
+class _QueryTimeout(Exception):
+    pass
+
+
+def _alarm(_sig, _frm):
+    raise _QueryTimeout()
 
 
 def _client():
@@ -47,10 +58,19 @@ def _client():
 
 
 def _hits(sw, smiles: str) -> list[dict]:
-    """Neighbour hits for one query: [{smiles, ecfp4, dist, mw}]. Empty on failure."""
+    """Neighbour hits for one query: [{smiles, ecfp4, dist, mw}]. Empty on failure.
+
+    Each attempt is bounded by a SIGALRM watchdog: the service intermittently drops
+    connections, and without this a single hung request stalls the whole run.
+    """
     for attempt in range(RETRIES):
         try:
-            df = sw.search(smiles, db=sw.REAL_dataset, dist=DIST, length=LENGTH)
+            signal.signal(signal.SIGALRM, _alarm)
+            signal.alarm(QUERY_TIMEOUT_S)
+            try:
+                df = sw.search(smiles, db=sw.REAL_dataset, dist=DIST, length=LENGTH)
+            finally:
+                signal.alarm(0)
             if df is None or not len(df):
                 return []
             col = "hitSmiles" if "hitSmiles" in df.columns else "smiles"
@@ -96,7 +116,10 @@ def run(probe_only: bool = False) -> None:
             done += 1
             continue
         hits = _hits(sw, smi)
-        fp.write_text(json.dumps({"name": name, "smiles": smi, "hits": hits}))
+        # An empty result after retries is cached (with a flag) so the phase can complete;
+        # `--retry-empty` clears those so a later pass re-queries them.
+        fp.write_text(json.dumps({"name": name, "smiles": smi, "hits": hits,
+                                  "empty_after_retries": not hits}))
         done += 1
         if not hits:
             failed += 1
@@ -132,10 +155,27 @@ def retrieval_metrics() -> dict:
             "raw_hits": raw, "unique_hit_smiles": len(uniq)}
 
 
+def retry_empty() -> int:
+    """Delete cache entries that came back empty, so --all re-queries them."""
+    n = 0
+    for f in CACHE.glob("OCNT-*.json"):
+        d = json.loads(f.read_text()) or {}
+        if not (d.get("hits") or []):
+            f.unlink()
+            n += 1
+    (CACHE / "_complete").unlink(missing_ok=True)
+    print(f"cleared {n} empty cache entries for re-query")
+    return n
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--probe", action="store_true")
     g.add_argument("--all", action="store_true")
+    g.add_argument("--retry-empty", action="store_true")
     a = ap.parse_args()
-    run(probe_only=a.probe)
+    if a.retry_empty:
+        retry_empty()
+    else:
+        run(probe_only=a.probe)
