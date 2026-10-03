@@ -10,3 +10,51 @@ Baseline for model steps: macro OOF Spearman **0.6037**, ST-RAE **0.4146** (D-MP
 | 2026-10-03T14:49:49+00:00 | phase1 | `sw_retrieve` | queries_cached=750  queries_empty=8  raw_hits=146687  unique_hit_smiles=131989 | 160.5m | `d828471` | ok |
 | 2026-10-03T15:20:07+00:00 | phase1 | `corpus_filter` | corpus_size=57191  anchor_density_0.7=0.644  median_nn_tanimoto=0.766  frac_nn_ge_0.5=0.888  passes_gate=True | 30.3m | `d828471` | ok |
 | 2026-10-03T15:31:30+00:00 | phase1 | `corpus_filter` | corpus_size=111361  anchor_density_0.7=0.9027  median_nn_tanimoto=0.8182  frac_nn_ge_0.5=0.9747  passes_gate=True | 9.0m | `f911b64` | ok |
+| 2026-10-03T18:34:11+00:00 | phase2 | `baseline` | ρ=0.6059 (+0.0022)  ST-RAE=0.4131 (-0.0015) | 26.0m | `21d1cb5` | ok |
+| 2026-10-03T19:01:33+00:00 | phase2 | `warmstart` | ρ=0.6017 (-0.0020)  ST-RAE=0.4171 (+0.0025) | 27.4m | `21d1cb5` | ok |
+| 2026-10-03T19:24:11+00:00 | phase2 | `octant` | ρ=0.5940 (-0.0097)  ST-RAE=0.4214 (+0.0068) | 22.6m | `21d1cb5` | ok |
+| 2026-10-03T20:01:50+00:00 | phase2 | `tox21` | ρ=0.6093 (+0.0056)  ST-RAE=0.4133 (-0.0013) | 37.7m | `21d1cb5` | ok |
+| 2026-10-03T20:32:23+00:00 | phase2 | `combined` | ρ=0.6059 (+0.0022)  ST-RAE=0.4148 (+0.0002) | 30.6m | `21d1cb5` | ok |
+
+## Per-isoform detail
+
+**phase2 / baseline**  
+| isoform | Spearman | ST-RAE | ST-RAE fold std |
+|---|---|---|---|
+| CYP1A2 | 0.530 | 0.507 | 0.034 |
+| CYP2C9 | 0.668 | 0.307 | 0.017 |
+| CYP2D6 | 0.442 | 0.568 | 0.033 |
+| CYP3A4 | 0.783 | 0.270 | 0.017 |
+
+**phase2 / warmstart**  
+| isoform | Spearman | ST-RAE | ST-RAE fold std |
+|---|---|---|---|
+| CYP1A2 | 0.525 | 0.511 | 0.038 |
+| CYP2C9 | 0.668 | 0.311 | 0.020 |
+| CYP2D6 | 0.430 | 0.574 | 0.035 |
+| CYP3A4 | 0.783 | 0.271 | 0.019 |
+
+**phase2 / octant**  
+| isoform | Spearman | ST-RAE | ST-RAE fold std |
+|---|---|---|---|
+| CYP1A2 | 0.514 | 0.519 | 0.036 |
+| CYP2C9 | 0.662 | 0.310 | 0.022 |
+| CYP2D6 | 0.420 | 0.581 | 0.026 |
+| CYP3A4 | 0.780 | 0.275 | 0.012 |
+
+**phase2 / tox21**  
+| isoform | Spearman | ST-RAE | ST-RAE fold std |
+|---|---|---|---|
+| CYP1A2 | 0.536 | 0.505 | 0.035 |
+| CYP2C9 | 0.668 | 0.309 | 0.018 |
+| CYP2D6 | 0.450 | 0.570 | 0.038 |
+| CYP3A4 | 0.783 | 0.269 | 0.020 |
+
+**phase2 / combined**  
+| isoform | Spearman | ST-RAE | ST-RAE fold std |
+|---|---|---|---|
+| CYP1A2 | 0.529 | 0.513 | 0.031 |
+| CYP2C9 | 0.672 | 0.306 | 0.017 |
+| CYP2D6 | 0.439 | 0.573 | 0.036 |
+| CYP3A4 | 0.784 | 0.268 | 0.020 |
+

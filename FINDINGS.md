@@ -1880,6 +1880,57 @@ even though they are absent from public **bioactivity** databases. They remain *
 §13's conclusion about measured public data stands; what changed is that an unsupervised
 warm-start corpus is now available. Whether it helps is Phase 2's question (GATE 2).
 
+## 40. GATE 2 — warm start and external heads: nothing clears the seed floor; Octant hurts
+
+Five legs, GFOLD, 3 seeds (`experiments/phase2_train.py`, ledger rows in `LEDGER.md`). Deltas
+are against the **in-run baseline leg**, not the historical reference, so the control shares
+every nuisance factor. Seed floor ≈ 0.004.
+
+| leg | macro Spearman | Δ | macro ST-RAE | Δ | verdict |
+|---|---|---|---|---|---|
+| baseline (control) | 0.6059 | — | 0.4131 | — | reproduces the 0.6037/0.4146 reference within the floor → **trainer validated** |
+| warm start (111k corpus) | 0.6017 | **−0.0042** | 0.4171 | +0.0040 | at/just beyond floor, **negative** |
+| Octant CYP3A4 head | 0.5940 | **−0.0119** | 0.4214 | +0.0082 | **clearly worse** |
+| Tox21 CYP heads | 0.6093 | +0.0035 | 0.4133 | +0.0002 | positive but **within floor → null** |
+| combined | 0.6059 | +0.0000 | 0.4148 | +0.0017 | **null** |
+
+Per-isoform Spearman deltas: Tox21 helps only the two weakest isoforms (CYP1A2 +0.006,
+CYP2D6 +0.008) and is flat on CYP2C9/CYP3A4. Octant degrades **CYP1A2 −0.015 and CYP2D6
+−0.022** despite its head being **CYP3A4-only** — the shared encoder being pulled off our
+chemistry by a different-condition external readout, the same mechanism as AID 1851 (§19).
+That is now twice-replicated: external CYP assay supervision from a different condition or a
+distant chemical space **costs** us, and the separate-head discipline limits but does not
+prevent the damage.
+
+### 40a. Trajectory diagnostic — the warm start was erased, not empty
+
+The instrument added for this gate (inner-validation macro ST-RAE per fine-tune epoch, 15
+fold/seed runs, `p2_*_traj.json`):
+
+| epoch | baseline | warm start | diff |
+|---|---|---|---|
+| 1 | 0.5425 | **0.5350** | **−0.0075** |
+| 2 | 0.4926 | 0.4939 | +0.0013 |
+| 3 | 0.4695 | 0.4767 | +0.0072 |
+| 5 | 0.4506 | 0.4519 | +0.0012 |
+| 10 | 0.4410 | 0.4412 | +0.0002 |
+
+**The warm start starts ahead (−0.0075 at epoch 1) and the advantage is gone by epoch 2.**
+This distinguishes the two hypotheses the gate was designed to separate: the corpus is **not
+empty** — the pretrained encoder begins fine-tuning measurably better — but the DRC fine-tune
+**erases the pretrained representation within a single epoch**. Consistent with §39a's
+geometry: the fine-tune's gradient lives 0.406 away from where the corpus taught the encoder,
+so there is nothing holding that representation in place.
+
+Caveat against over-reading: an epoch-1 advantage is also what a merely better-conditioned
+initialisation would produce, and 0.0075 is close to the seed floor. It is a signature, not
+proof of chemistry-specific transfer.
+
+**Implied follow-up (not run, gate discipline):** lower encoder learning rate or frozen early
+layers during fine-tuning, so the corpus representation survives past epoch 1 — i.e. the
+pre-registered response to "trajectories converge almost immediately", rather than abandoning
+the approach. Octant should be dropped outright; Tox21 is null and not worth carrying.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
