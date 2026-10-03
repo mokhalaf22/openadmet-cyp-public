@@ -15,6 +15,8 @@ Baseline for model steps: macro OOF Spearman **0.6037**, ST-RAE **0.4146** (D-MP
 | 2026-10-03T19:24:11+00:00 | phase2 | `octant` | ρ=0.5940 (-0.0097)  ST-RAE=0.4214 (+0.0068) | 22.6m | `21d1cb5` | ok |
 | 2026-10-03T20:01:50+00:00 | phase2 | `tox21` | ρ=0.6093 (+0.0056)  ST-RAE=0.4133 (-0.0013) | 37.7m | `21d1cb5` | ok |
 | 2026-10-03T20:32:23+00:00 | phase2 | `combined` | ρ=0.6059 (+0.0022)  ST-RAE=0.4148 (+0.0002) | 30.6m | `21d1cb5` | ok |
+| 2026-10-03T21:20:55+00:00 | phase2b | `ws_lowlr` | ρ=0.5875 (-0.0162)  ST-RAE=0.4235 (+0.0089) | 20.1m | `1f312ed` | ok |
+| 2026-10-03T21:41:08+00:00 | phase2b | `ws_freeze` | ρ=0.5885 (-0.0152)  ST-RAE=0.4233 (+0.0087) | 20.2m | `1f312ed` | ok |
 
 ## Per-isoform detail
 
@@ -57,4 +59,20 @@ Baseline for model steps: macro OOF Spearman **0.6037**, ST-RAE **0.4146** (D-MP
 | CYP2C9 | 0.672 | 0.306 | 0.017 |
 | CYP2D6 | 0.439 | 0.573 | 0.036 |
 | CYP3A4 | 0.784 | 0.268 | 0.020 |
+
+**phase2b / ws_lowlr**  
+| isoform | Spearman | ST-RAE | ST-RAE fold std |
+|---|---|---|---|
+| CYP1A2 | 0.519 | 0.515 | 0.035 |
+| CYP2C9 | 0.651 | 0.316 | 0.024 |
+| CYP2D6 | 0.408 | 0.586 | 0.029 |
+| CYP3A4 | 0.773 | 0.277 | 0.014 |
+
+**phase2b / ws_freeze**  
+| isoform | Spearman | ST-RAE | ST-RAE fold std |
+|---|---|---|---|
+| CYP1A2 | 0.520 | 0.514 | 0.034 |
+| CYP2C9 | 0.650 | 0.317 | 0.024 |
+| CYP2D6 | 0.411 | 0.585 | 0.026 |
+| CYP3A4 | 0.772 | 0.278 | 0.014 |
 

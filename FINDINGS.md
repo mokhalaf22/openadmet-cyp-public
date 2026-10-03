@@ -1979,6 +1979,47 @@ folds, 3 seeds, same per-epoch inner-validation trajectory logging. Seed floor 0
 
 **No third configuration in any branch.**
 
+## 43. GATE 2b — holding the encoder makes it worse. Warm start closed.
+
+Both pre-registered configurations, from the cached `phase2_encoder.pt`, GFOLD, 3 seeds.
+Deltas vs the **in-run baseline control** (0.6059 / 0.4131) as pre-registered in §42. (The
+runner's console deltas quote the historical 0.6037 reference, hence small differences.)
+
+| leg | macro Spearman | Δ | macro ST-RAE | Δ |
+|---|---|---|---|---|
+| baseline (control) | 0.6059 | — | 0.4131 | — |
+| warm start (plain) | 0.6017 | −0.0042 | 0.4171 | +0.0040 |
+| **(a) `ws_lowlr`** (enc LR 1/10) | 0.5875 | **−0.0184** | 0.4235 | +0.0104 |
+| **(b) `ws_freeze`** (5 ep frozen) | 0.5885 | **−0.0174** | 0.4233 | +0.0102 |
+
+Worse on **every** isoform, worst on CYP2D6 (−0.035 / −0.031). Inner-validation trajectory:
+
+| epoch | baseline | ws_lowlr | ws_freeze | lowlr−base | freeze−base |
+|---|---|---|---|---|---|
+| 1 | 0.5425 | 0.5387 | 0.5399 | −0.0038 | −0.0026 |
+| 2 | 0.4926 | 0.4880 | 0.4874 | −0.0046 | −0.0053 |
+| 3 | 0.4695 | 0.4740 | 0.4731 | **+0.0045** | **+0.0036** |
+| 6 | 0.4458 | 0.4506 | 0.4528 | +0.0048 | +0.0070 |
+| 10 | 0.4410 | 0.4453 | 0.4458 | +0.0043 | +0.0048 |
+
+**Verdict under the §42 pre-registration: STOP.** The early advantage survived only to epoch 2
+and then **reversed** — from epoch 3 onward both constrained configurations are consistently
+worse and never recover — and macro Spearman moved −0.018, nowhere near the +0.004 required by
+branch 1. Branches 2 and 3 both prescribe stopping; the outcome is in fact worse than either
+anticipated. **No third configuration, as pre-committed.**
+
+**What this settles.** The epoch-1 advantage in §40a was **conditioning, not retained transfer**.
+Holding the encoder in place costs *more* than letting it be erased (−0.018 constrained vs
+−0.0042 plain), which means the fine-tune was not destroying something valuable in §40a — it was
+correctly overwriting a representation that does not serve the DRC mapping. The 111k-compound
+corpus is dense, genuinely near the blinded set (§39), and **still carries nothing usable**: its
+physicochemical structure is not the information the pIC50 task needs, and constraining the
+encoder toward it actively prevents fitting the task.
+
+With §41 (external assay data dropped) this **closes Phase 2 entirely**: warm start, Octant and
+Tox21 are all dead ends, and the §37 count of null ranking levers rises from 14 to 17. Phase 1's
+retrieval success (§39) remains real but has now been shown not to convert into model performance.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
