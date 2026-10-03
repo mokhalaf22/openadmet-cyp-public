@@ -1931,6 +1931,54 @@ layers during fine-tuning, so the corpus representation survives past epoch 1 �
 pre-registered response to "trajectories converge almost immediately", rather than abandoning
 the approach. Octant should be dropped outright; Tox21 is null and not worth carrying.
 
+## 41. RULE — external assay data degrades the shared encoder on this task
+
+Stated as a rule rather than two separate results, because it is now **independently
+replicated**:
+
+> **External CYP assay supervision degrades this model's shared encoder, even when
+> architecturally isolated to its own head.** Architectural isolation (separate
+> `source × isoform × readout` head, no merging, no rescaling) **limits but does not prevent**
+> the damage, because the harm travels through the *shared encoder*, not through the output
+> column.
+
+Evidence:
+- **PubChem AID 1851 / Veith** (§19): five auxiliary heads moved direct ST-RAE 0.433 → 0.448
+  and CYP2D6/CYP3A4 MCC 0.125/0.336 → 0.065/0.310. Blinded-set nearest-neighbour Tanimoto to
+  AID 1851 is only median 0.368 — distant chemistry.
+- **Octant CYP3A4** (§40, Gate 2): macro Spearman −0.0119, ST-RAE +0.0082. Decisively, its head
+  is **CYP3A4-only** yet it degraded **CYP1A2 by 0.015 and CYP2D6 by 0.022** — isoforms it does
+  not touch. The only path for that is the shared encoder. Same lab, same compounds, merely a
+  different assay condition (combined reversible + TDI pre-incubation), and it still hurt.
+
+The two cases differ in *why* (distant chemistry vs different assay condition) but agree on the
+*what*. **Decision: Octant is dropped permanently. Tox21 is dropped as null** (+0.0035 macro
+Spearman, inside the 0.004 seed floor). No further external-assay ingestion is planned; the
+burden of proof now sits with any proposal to add one.
+
+## 42. Gate 2b — pre-registered reading of the warm-start follow-up
+
+Recorded **before running**, so the interpretation cannot drift to fit the result. §40a showed
+the warm start starts ahead (epoch-1 inner-val −0.0075) but is erased by epoch 2. Two
+configurations only, from the cached `phase2_encoder.pt`:
+
+- **(a) `ws_lowlr`** — encoder learning rate at **one tenth** the head rate (1e-4 vs 1e-3) for
+  the whole fine-tune.
+- **(b) `ws_freeze`** — encoder **frozen for the first 5 epochs**, then unfrozen at the reduced
+  rate.
+
+Control: the in-run Phase-2 baseline leg, **0.6059 macro Spearman / 0.4131 ST-RAE**. Same GFOLD
+folds, 3 seeds, same per-epoch inner-validation trajectory logging. Seed floor 0.004.
+
+**Pre-committed reading:**
+1. **Advantage persists past epoch 2 AND macro Spearman clears +0.004** → the corpus carries
+   **real transfer**; the warm start is worth keeping.
+2. **Advantage persists but macro stays flat** → the corpus supplies **better conditioning, not
+   chemistry-specific information**; **stop**.
+3. **Advantage still vanishes** → freezing did not hold it; **stop**.
+
+**No third configuration in any branch.**
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,

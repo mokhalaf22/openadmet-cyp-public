@@ -300,7 +300,7 @@ def run_leg(leg: str) -> dict:
     print(f"leg={leg} | aux heads: {aux_names or 'none'} | external rows: {len(ext_idx)}", flush=True)
 
     enc_sd = None
-    if leg in ("warmstart", "combined"):
+    if leg in ("warmstart", "combined", "ws_lowlr", "ws_freeze"):
         corpus = pd.read_csv(ROOT / "experiments/corpus_phase1.csv")["smiles"].tolist()
         enc_sd = pretrain_encoder(corpus, df["SMILES"].tolist())
 
@@ -334,10 +334,25 @@ def run_leg(leg: str) -> dict:
                 AM[va] = False  # never supervise on validation-fold rows
             torch.manual_seed(seed)
             net = Net(PF.shape[1], A.shape[1], enc_sd=enc_sd)
-            opt = torch.optim.Adam(net.parameters(), lr=1e-3, weight_decay=1e-4)
+            # Gate-2b configurations: hold the pretrained encoder in place so the corpus
+            # representation can survive past epoch 1 (§40a showed it is erased by epoch 2).
+            HEAD_LR, ENC_LR, FREEZE_EP = 1e-3, 1e-4, 5
+            if leg in ("ws_lowlr", "ws_freeze"):
+                enc_p = list(net.mp.parameters())
+                enc_ids = {id(p) for p in enc_p}
+                head_p = [p for p in net.parameters() if id(p) not in enc_ids]
+                if leg == "ws_freeze":
+                    net.mp.requires_grad_(False)  # genuinely frozen, not lr=0
+                opt = torch.optim.Adam(
+                    [{"params": head_p, "lr": HEAD_LR},
+                     {"params": enc_p, "lr": ENC_LR}], weight_decay=1e-4)
+            else:
+                opt = torch.optim.Adam(net.parameters(), lr=1e-3, weight_decay=1e-4)
             g = torch.Generator().manual_seed(seed)
             best, key = (1e9, None, 0), f"s{seed}f{f}"
             for ep in range(MAXEP):
+                if leg == "ws_freeze" and ep == FREEZE_EP:
+                    net.mp.requires_grad_(True)  # unfreeze at the reduced encoder rate
                 net.train()
                 perm = torch.randperm(len(tr), generator=g).numpy()
                 for i in range(0, len(tr), BS):
@@ -385,5 +400,5 @@ def run_leg(leg: str) -> dict:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--leg", required=True,
-                    choices=["baseline", "warmstart", "octant", "tox21", "combined"])
+                    choices=["baseline", "warmstart", "octant", "tox21", "combined", "ws_lowlr", "ws_freeze"])
     run_leg(ap.parse_args().leg)

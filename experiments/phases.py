@@ -136,6 +136,37 @@ PHASES: dict[str, dict] = {
         ),
     },
 
+    # ----------------------------------------------------------------- 2b ---
+    "phase2b": {
+        "title": "warm-start follow-up: hold the pretrained encoder in place (§42 pre-registered)",
+        "steps": [
+            {
+                "name": "ws_lowlr",
+                "run": f"{PY} experiments/phase2_train.py --leg ws_lowlr",
+                "done_when": "experiments/p2_ws_lowlr_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/p2_ws_lowlr_oof.npy"},
+                "config": {"encoder_lr": 1e-4, "head_lr": 1e-3, "note": "1/10 encoder LR throughout"},
+            },
+            {
+                "name": "ws_freeze",
+                "run": f"{PY} experiments/phase2_train.py --leg ws_freeze",
+                "done_when": "experiments/p2_ws_freeze_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/p2_ws_freeze_oof.npy"},
+                "config": {"freeze_epochs": 5, "then_encoder_lr": 1e-4, "head_lr": 1e-3},
+            },
+        ],
+        "gate": (
+            "GATE 2b — against the in-run baseline control (0.6059 / 0.4131), seed floor 0.004.\n"
+            "Pre-registered reading (§42, recorded before running):\n"
+            "  1. advantage persists past epoch 2 AND macro Spearman clears +0.004 -> real transfer, keep\n"
+            "  2. advantage persists but macro flat -> better conditioning only, STOP\n"
+            "  3. advantage still vanishes -> freezing did not hold it, STOP\n"
+            "No third configuration in any branch."
+        ),
+    },
+
     # ------------------------------------------------------------------ 3 ---
     "phase3": {
         "title": "multi-fidelity + metric-aligned training: proxy rows, CI sampling, SMILES enumeration",
