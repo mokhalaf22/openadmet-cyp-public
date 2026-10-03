@@ -1785,6 +1785,46 @@ throughout — every gain since the base model is calibration, consistent with �
 is at the representational ceiling). Next calibration probe per §30a: CYP2D6 at 1.0× alone,
 to finish the clean attribution.
 
+## 39. GATE 1 — neighbour retrieval works at scale (111,361 compounds, 90.3% anchor density)
+
+Phase 1 of the gated plan, run by `experiments/runner.py` (ledger: `experiments/ledger.json`,
+summary `experiments/LEDGER.md`). **Route:** the plan's primary route (local ECFP4 search over the
+~15.26B-SMILES corpus) needs the HPC cluster — corpus + index far exceed this machine's 24 GB RAM
+/ 526 GiB disk — so the authorized fallback was used: the **SmallWorld API** against Enamine REAL
+(`REALDB-2025-07`), batched and resumable, **structures only** (no measured labels on neighbours,
+by construction).
+
+| stage | count |
+|---|---|
+| queries | 750 (8 empty), 160.5 min |
+| raw hits → unique structures | 146,687 → 131,987 |
+| after excluding challenge train/test + 6 quarantined | 131,381 |
+| after blinded-set physicochemical envelope (1st–99th pct) | 118,226 |
+| after subtractive-veto alert screen | **111,361** |
+
+**GATE 1 metrics:** admitted corpus **111,361**; blind anchor density @ Tanimoto 0.7 **90.3%**;
+median NN Tanimoto (blinded→corpus) **0.818** (mean 0.810; 97.5% ≥ 0.5). Prior ChEMBL/PubChem
+attempt: 324 compounds / 13.3% (§35). **Gate passes** (bars: ≥10,000 and ≥40%).
+
+**Two caveats recorded.**
+1. *Corpus exceeds the 30k–90k target* (111,361). Options: use as-is, or subsample — e.g. cap
+   neighbours per blinded compound to balance coverage rather than take the global top-N, which
+   would skew toward whichever parents happen to be well represented in REAL.
+2. *A veto bug was found and fixed mid-gate.* REOS `process_mol` returns
+   `(rule_set_name, description)` but `drop_rule()` keys on the description; the first
+   implementation passed the set name, which matched nothing, so **no alert was vetoed** and all
+   1,251 rules were applied — including those firing on blinded compounds, the precise outcome the
+   subtractive veto exists to prevent. Corrected to veto by description: **75 individual alerts**
+   now dropped, and alert attrition fell from 52% (61,035 removed) to 6% (6,865 removed).
+   Effect on the gate: corpus 57,191 → **111,361**, density 64.4% → **90.3%**, median NN
+   0.766 → **0.818**. The buggy output is kept as `experiments/gate1_vetobug.json`.
+
+This is the first external-data result that contradicts §13's pessimism in one specific respect:
+near neighbours of the blinded set *do* exist in make-on-demand catalogue space (Enamine REAL),
+even though they are absent from public **bioactivity** databases. They remain **unlabelled** —
+§13's conclusion about measured public data stands; what changed is that an unsupervised
+warm-start corpus is now available. Whether it helps is Phase 2's question (GATE 2).
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,

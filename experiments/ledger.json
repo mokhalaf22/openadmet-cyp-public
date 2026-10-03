@@ -1,0 +1,114 @@
+[
+ {
+  "when": "2026-10-03T03:16:13+00:00",
+  "phase": "phase1",
+  "step": "deps",
+  "config": {
+   "packages": [
+    "smallworld-api",
+    "rd-filters"
+   ]
+  },
+  "metrics": {},
+  "wall_time_s": 0.6,
+  "commit": "96f545e",
+  "status": "failed",
+  "error": "exit 1"
+ },
+ {
+  "when": "2026-10-03T03:18:28+00:00",
+  "phase": "phase1",
+  "step": "deps",
+  "config": {
+   "packages": [
+    "smallworld-api",
+    "useful_rdkit_utils"
+   ],
+   "note": "rd_filters is not on PyPI (GitHub-only); useful_rdkit_utils ships the same REOS alert catalogs (Glaxo, Dundee, BMS, PAINS, SureChEMBL, MLSMR, Inpharmatica, LINT) with per-rule drop_rule(), which the subtractive veto needs."
+  },
+  "metrics": {},
+  "wall_time_s": 0.5,
+  "commit": "96f545e",
+  "status": "ok"
+ },
+ {
+  "when": "2026-10-03T03:18:48+00:00",
+  "phase": "phase1",
+  "step": "sw_probe",
+  "config": {
+   "route": "SmallWorld API (fallback route)",
+   "why": "primary 15.26B-SMILES local search needs HPC + TB storage"
+  },
+  "metrics": {
+   "probe_hits": 200,
+   "probe_ecfp4_max": 0.6818181818181818,
+   "db": "REALDB-2025-07.smi.anon",
+   "dist": 4,
+   "length": 200
+  },
+  "wall_time_s": 20.1,
+  "commit": "96f545e",
+  "status": "ok"
+ },
+ {
+  "when": "2026-10-03T14:49:49+00:00",
+  "phase": "phase1",
+  "step": "sw_retrieve",
+  "config": {
+   "queries": 750,
+   "batched": true,
+   "resumable": "per-compound cache"
+  },
+  "metrics": {
+   "queries_cached": 750,
+   "queries_empty": 8,
+   "raw_hits": 146687,
+   "unique_hit_smiles": 131989
+  },
+  "wall_time_s": 9631.0,
+  "commit": "d828471",
+  "status": "ok"
+ },
+ {
+  "when": "2026-10-03T15:20:07+00:00",
+  "phase": "phase1",
+  "step": "corpus_filter",
+  "config": {
+   "envelope": "physicochemical envelope of the blinded set",
+   "alerts": "rd_filters with subtractive veto (drop any alert firing on a blinded compound)",
+   "exclusions": "6 quarantined Octant overlaps + challenge train/test",
+   "target_corpus": "30k-90k admitted"
+  },
+  "metrics": {
+   "corpus_size": 57191,
+   "anchor_density_0.7": 0.644,
+   "median_nn_tanimoto": 0.766,
+   "frac_nn_ge_0.5": 0.888,
+   "passes_gate": true
+  },
+  "wall_time_s": 1818.5,
+  "commit": "d828471",
+  "status": "ok"
+ },
+ {
+  "when": "2026-10-03T15:31:30+00:00",
+  "phase": "phase1",
+  "step": "corpus_filter",
+  "config": {
+   "envelope": "physicochemical envelope of the blinded set",
+   "alerts": "rd_filters with subtractive veto (drop any alert firing on a blinded compound)",
+   "exclusions": "6 quarantined Octant overlaps + challenge train/test",
+   "target_corpus": "30k-90k admitted"
+  },
+  "metrics": {
+   "corpus_size": 111361,
+   "anchor_density_0.7": 0.9027,
+   "median_nn_tanimoto": 0.8182,
+   "frac_nn_ge_0.5": 0.9747,
+   "passes_gate": true
+  },
+  "wall_time_s": 541.5,
+  "commit": "f911b64",
+  "status": "ok"
+ }
+]

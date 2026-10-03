@@ -1,0 +1,20 @@
+{
+ "corpus_size": 57191,
+ "anchor_density_0.7": 0.644,
+ "median_nn_tanimoto": 0.766,
+ "mean_nn_tanimoto": 0.7201,
+ "frac_nn_ge_0.5": 0.888,
+ "queries_cached": 750,
+ "raw_hits": 146687,
+ "unique_structures": 131381,
+ "dropped_alerts": [
+  "Dundee",
+  "Glaxo",
+  "Inpharmatica",
+  "LINT",
+  "MLSMR",
+  "PAINS",
+  "SureChEMBL"
+ ],
+ "passes_gate": true
+}
