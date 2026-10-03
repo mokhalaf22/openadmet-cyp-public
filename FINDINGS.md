@@ -268,6 +268,20 @@ medians are 0.47–0.54 with 3–6% above 0.7.
 | CYP2D6 subset | 0.471 | 3% |
 | CYP3A4 subset | 0.538 | 6% |
 
+> **Correction (see §39a).** The 0.587 above is the **blinded → training** direction: for each
+> blinded compound, its nearest training neighbour. It was used here as evidence that we are not
+> badly extrapolating. The **reverse** direction is far less comfortable: **training → blinded
+> median NN is 0.294, with only 0.7% of training compounds having a blinded neighbour ≥0.7**
+> (§39a). That is the more honest description of train/test overlap — the two sets are
+> **near-disjoint**.
+>
+> The asymmetry is real, not a measurement artefact: the blinded set is a **tight hit-expansion
+> cluster** (75 potent parents × ~10 analogues each), so each blinded compound finds *some*
+> training neighbour at ~0.59, while the **diffuse** 6,145-compound training set mostly has nothing
+> near the cluster. A nearest-neighbour median is direction-dependent whenever one set is
+> concentrated and the other is spread out, and quoting only the flattering direction overstates
+> coverage. Any claim about train/test overlap should cite **both** directions.
+
 So the blinded set is **not** near-duplicate hit expansion off the training
 rows — the analogs are genuinely new, sitting in a neighbourhood the model has
 seen but not on top of it. This makes scaffold-split OOF a **more credible proxy
@@ -1841,9 +1855,24 @@ not a hypothetical one.
 The table also restates the benchmark's core geometry sharply: **training → blinded median NN is
 only 0.294, with 0.7% of training compounds having a blinded neighbour ≥0.7.** Train and test are
 near-disjoint chemical regions (consistent with §10's 0.587 blinded→training figure, which is the
-*reverse* direction and flatters the overlap). The corpus covers the test region densely and the
-training region barely — so it is better understood as *unlabelled test-region coverage* than as a
-bridge.
+*reverse* direction and flatters the overlap — see the §10 correction). The corpus covers the test
+region densely and the training region barely — so it is better understood as *unlabelled
+test-region coverage* than as a bridge.
+
+**Why "does it bridge?" is the wrong test here (reasoning recorded so this decision is not later
+mistaken for ignoring the geometry).** The bridging criterion presupposes a middle region between
+training and blinded chemistry that a corpus could occupy. This benchmark has no such region:
+training → blinded median NN is **0.294** with **0.7%** above 0.7, i.e. the two sets are
+near-disjoint, so *no* corpus could sit between them. A corpus retrieved from the blinded side will
+necessarily look like the blinded side, and one retrieved from the training side would not help with
+the test region at all. The decision-relevant question is therefore not bridging but:
+
+> **does dense *unlabelled* coverage of the test region help when nothing labelled reaches it?**
+
+That is genuinely open. The mechanism would be representational — the encoder learns the geometry of
+the region it must extrapolate into, with computed physicochemical properties as the only available
+supervision there — and it is exactly what Phase 2's four attribution runs measure. Proceeding on
+that basis, not in spite of the geometry.
 
 This is the first external-data result that contradicts §13's pessimism in one specific respect:
 near neighbours of the blinded set *do* exist in make-on-demand catalogue space (Enamine REAL),
