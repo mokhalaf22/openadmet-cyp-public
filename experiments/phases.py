@@ -84,7 +84,51 @@ PHASES: dict[str, dict] = {
     # ------------------------------------------------------------------ 2 ---
     "phase2": {
         "title": "encoder warm start + external heads (Octant CYP3A4, Tox21), 4 attribution runs",
-        "steps": _blocked("phase2 is fenced until GATE 1 is reviewed and its steps are wired"),
+        "steps": [
+            {   # reference leg: must reproduce 0.6037 / 0.4146, which validates the trainer
+                "name": "baseline",
+                "run": f"{PY} experiments/phase2_train.py --leg baseline",
+                "done_when": "experiments/p2_baseline_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/p2_baseline_oof.npy"},
+                "config": {"leg": "baseline", "expect": "0.6037 / 0.4146"},
+            },
+            {
+                "name": "warmstart",
+                "run": f"{PY} experiments/phase2_train.py --leg warmstart",
+                "done_when": "experiments/p2_warmstart_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/p2_warmstart_oof.npy"},
+                "config": {"leg": "warmstart", "corpus": 111361,
+                           "pretrain": "physchem-only (label-free, shared across folds)"},
+            },
+            {
+                "name": "octant",
+                "run": f"{PY} experiments/phase2_train.py --leg octant",
+                "done_when": "experiments/p2_octant_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/p2_octant_oof.npy"},
+                "config": {"leg": "octant", "aux_rows": 1083,
+                           "note": "CYP3A4 combined reversible+TDI condition, separate head"},
+            },
+            {
+                "name": "tox21",
+                "run": f"{PY} experiments/phase2_train.py --leg tox21",
+                "done_when": "experiments/p2_tox21_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/p2_tox21_oof.npy"},
+                "config": {"leg": "tox21", "aux_rows": 7879,
+                           "isoforms": "CYP1A2/2C9/2D6 (no CYP3A4 in panel)"},
+            },
+            {
+                "name": "combined",
+                "run": f"{PY} experiments/phase2_train.py --leg combined",
+                "done_when": "experiments/p2_combined_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/p2_combined_oof.npy"},
+                "config": {"leg": "combined", "legs": ["warmstart", "octant", "tox21"]},
+            },
+        ],
         "gate": (
             "GATE 2 — OOF Spearman and ST-RAE per isoform for: warm-start alone, Octant alone,\n"
             "Tox21 alone, and combined (four runs, so each source is attributable), against\n"
