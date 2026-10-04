@@ -40,6 +40,9 @@ the report and findings regenerate from the pinned data revision.
   (interval hinge + ST-RAE), `guards`, `baseline`, `twohead`, `submit`.
 - `experiments/` — ablations and the modelling studies (results as `*.json`; large
   per-seed arrays and data intermediates are git-ignored).
+  - `runner.py` + `phases.py` — the gated phase runner used for the later experiments: steps
+    are checkpointed, every result is appended to `ledger.json`, and a readable summary is
+    written to [`LEDGER.md`](experiments/LEDGER.md). It stops at each phase gate by design.
 - `tests/` — invariants, losses, splits, submission schema.
 - `figures/` — EDA plots (from the public training data).
 
