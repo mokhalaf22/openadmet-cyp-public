@@ -39,3 +39,6 @@ organizer_disclosure.md
 
 # Runner step logs
 experiments/logs/
+
+# SmallWorld retrieval cache (750 per-compound JSONs; retrieved structures, intermediates)
+experiments/sw_cache/
