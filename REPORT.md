@@ -306,9 +306,10 @@ directions rather than inheriting the architecture from the original plan.
   proxy for *ordering* but not *calibrated magnitude* here (§6); size confidence to the size of
   the move.
 - **The gap to the leaders is a data property, not an unexplored method** (§5, §5a). We enumerate
-  **19** ranking experiments (FINDINGS §37 for the first 14, §40–§44 for the rest): **one** moved
-  the model — the predicted-primary-screen feature (§4). The search space we could reach was
-  explored and characterised, not left open.
+  **21** architecture/feature/data levers (FINDINGS §37 for the first 14, §40–§45 for the rest):
+  **one** improved the model — the predicted-primary-screen feature (§4) — and two *confirmed*
+  existing choices rather than beating them (§7, §8: isoform sharing, and separate models per
+  track). The search space we could reach was explored and characterised, not left open.
 - **Reproducibility:** pinned data revision, deterministic scaffold folds, `make data | inspect |
   baseline | submit`; experiments in `experiments/` are phased and per-fold/seed checkpointed.
   Neural training is multi-threaded (non-bitwise-reproducible); the ~0.004 seed-ensemble spread
