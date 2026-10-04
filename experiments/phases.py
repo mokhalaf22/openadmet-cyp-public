@@ -204,6 +204,41 @@ PHASES: dict[str, dict] = {
         ),
     },
 
+    # ---------------------------------------------------------------- arch ---
+    "arch": {
+        "title": "architecture tests: does the TDI head cost regression, does isoform sharing help",
+        "steps": [
+            {
+                "name": "allheads",
+                "run": f"{PY} experiments/arch_train.py --leg allheads",
+                "done_when": "experiments/arch_allheads_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/arch_allheads_oof.npy"},
+                "config": {"heads": "mu(4) + supervised delta(4) + TDI classifier(4)",
+                           "premise_fix": "the control is already regression-only, so the test "
+                                          "ADDS heads rather than removing them (§45)"},
+            },
+            {
+                "name": "per_isoform",
+                "run": f"{PY} experiments/arch_train.py --leg per_isoform",
+                "done_when": "experiments/arch_per_isoform_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/arch_per_isoform_oof.npy"},
+                "config": {"models": "4 single-task, own encoder each",
+                           "retests": "-0.032 macro shared-vs-per-isoform, measured on the ECFP "
+                                      "control before the D-MPNN encoder and predicted-primary"},
+            },
+        ],
+        "gate": (
+            "GATE ARCH — both legs against the in-run regression-only control (0.6059 / 0.4131),\n"
+            "seed floor 0.004.\n"
+            "  (a) allheads worse  -> the TDI heads cost the regression side; shipping regression\n"
+            "      from a regression-only model is confirmed (and is already what we do).\n"
+            "  (b) per_isoform worse -> isoform sharing still helps on the current architecture;\n"
+            "      better -> the -0.032 conclusion did not survive the encoder it was measured on."
+        ),
+    },
+
     # ------------------------------------------------------------------ 4 ---
     "phase4": {
         "title": "multi-task imputation + non-negative stacking over surviving legs",
