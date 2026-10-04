@@ -72,6 +72,27 @@ reported bounds, rather than a point the assay never measured, is what closed it
 entry's core statistical argument: a formulation matched to the data's uncertainty, not a larger
 network, moved the floor.
 
+**Validated a second, independent way: by what dilutes it.** The formulation was first confirmed by
+what *improved* the model (point → interval targets, above). It was confirmed again by two attempts
+to add information that failed *because* they weakened the interval treatment (FINDINGS §44):
+
+- **Proxy supervision.** The single-concentration screen let us fill sparse cells of the isoform
+  matrix: **11,505 proxy-supervised (compound, isoform) cells against 6,525 real ones**, from
+  per-fold `log2FC + structure → pIC50` mappings of genuinely good quality (held-out Pearson
+  **0.901 / 0.860 / 0.756 / 0.933**). It still cost **ST-RAE +0.0442** against Spearman **−0.0141**.
+- **Within-interval sampling.** Drawing the training target from inside each reported `[lo, hi]`
+  (one draw per epoch) instead of using the hinge: **ST-RAE +0.0065**. Same failure, milder.
+
+**The asymmetry is the finding, not the sign.** Ranking barely moved while ST-RAE degraded ~3×
+more, because proxy cells are necessarily *point* targets: 11,505 of them — nearly 2× the real
+supervision even at weight 0.3 — pull the model back toward point regression and destroy the
+hinge's **zero-error zone inside the reported interval**, which *is* the metric. The information
+was accurate; its *fidelity* was wrong.
+
+> **General rule: more supervision at the wrong fidelity is worse than less supervision at the
+> right one.** When the metric scores against intervals, a confident point target is not a weaker
+> version of an interval — it is a different and conflicting claim about what was measured.
+
 ## 4. The one auxiliary lever that worked — the predicted primary screen
 
 The single-concentration screen (log2FC) is a **different assay** from the scored dose-response
@@ -84,7 +105,16 @@ that improved the underlying model:
 
 It works for two reasons that turn out to be the general rule here: the surrogate is **strongly
 learnable from structure** (OOF Pearson 0.59–0.74) and it carries **new, different-assay
-information**. The **final regression model is this D-MPNN + predicted-primary** (multi-task over
+information**.
+
+**A factual correction worth stating, because it explains the mechanism** (FINDINGS §44): there are
+**no screen-only molecules.** All **4,376** unique single-concentration compounds are already in the
+dose-response table (matched by InChIKey; exactly one differs by SMILES string alone). The screen is
+therefore **a second readout on the same compounds, not an additional pool of compounds** — which is
+precisely why it pays as a *feature* (extra information per compound) and not as extra training
+*rows* (there are none to add). An earlier plan to add "the ~4,376 screen-only molecules" as rows had
+no molecules to act on; retargeting it to fill sparse matrix *cells* instead then failed for the
+fidelity reason in §3. The **final regression model is this D-MPNN + predicted-primary** (multi-task over
 the four isoforms, interval targets, 3-seed ensemble). A CheMeleon foundation encoder — frozen
 (embeddings → TabICL) or fine-tuned end-to-end — did **not** beat it (FINDINGS §26, §32),
 consistent with §2: the from-scratch D-MPNN is already at the representational ceiling for this
@@ -215,6 +245,9 @@ classifier; the leaders reach their operating point by discrimination, not a tig
   only when it is *strongly learnable from structure* **and** from a *different assay*;
 - **post-hoc dispersion** + a **validated location shift** for a known target-distribution shift,
   tested on the board under the §6 discipline;
+- **fidelity over volume whenever the metric scores against intervals** (§3): match the *form* of
+  the supervision to the metric before chasing more of it. Here 11,505 accurate-but-point proxy
+  labels were worse than 6,525 interval ones;
 - **a structure-level leakage check before ingesting any external data** — and, as a standing
   rule: **when a challenge is run by a lab that also publishes datasets, check its public releases
   for the blinded test compounds (by canonical structure/InChIKey, not just identifiers) before
@@ -229,15 +262,22 @@ classifier; the leaders reach their operating point by discrimination, not a tig
 - explicit ranking losses (pairwise margin — the bottleneck is representational, not the loss);
 - SQRL/difference learning or neighbour warm-starts **without** a dense external neighbour corpus
   — the retrievable public corpus is 324 compounds at 13.3% anchor density;
-- the Octant release as "external" data — it is 99.3% the challenge's own compounds.
+- the Octant release as "external" data — it is 99.3% the challenge's own compounds;
+- **proxy point targets to fill the sparse isoform matrix** — not because the proxies are
+  inaccurate (held-out Pearson 0.76–0.93) but because a point target contradicts the interval the
+  assay actually reported, and the metric scores intervals: ST-RAE +0.0442 (§3);
+- **sampling the target from inside the reported interval** — it discards the hinge's agreement
+  with the metric and adds variance for nothing: ST-RAE +0.0065 (§3).
 
 ## 9. Limitations, reproducibility, and external-data disclosure
 
 - **All model numbers are scaffold-split OOF; blind = the live half-set board.** OOF is a usable
   proxy for *ordering* but not *calibrated magnitude* here (§6); size confidence to the size of
   the move.
-- **The gap to the leaders is a data property, not an unexplored method** (§5). We enumerate 14
-  ranking experiments in FINDINGS §37; one moved the model.
+- **The gap to the leaders is a data property, not an unexplored method** (§5, §5a). We enumerate
+  **19** ranking experiments (FINDINGS §37 for the first 14, §40–§44 for the rest): **one** moved
+  the model — the predicted-primary-screen feature (§4). The search space we could reach was
+  explored and characterised, not left open.
 - **Reproducibility:** pinned data revision, deterministic scaffold folds, `make data | inspect |
   baseline | submit`; experiments in `experiments/` are phased and per-fold/seed checkpointed.
   Neural training is multi-threaded (non-bitwise-reproducible); the ~0.004 seed-ensemble spread
