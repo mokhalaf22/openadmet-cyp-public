@@ -2020,6 +2020,46 @@ With §41 (external assay data dropped) this **closes Phase 2 entirely**: warm s
 Tox21 are all dead ends, and the §37 count of null ranking levers rises from 14 to 17. Phase 1's
 retrieval success (§39) remains real but has now been shown not to convert into model performance.
 
+## 44. GATE 3 — both metric/multi-fidelity legs are negative; they dilute the interval formulation
+
+Two legs (SMILES enumeration dropped: a D-MPNN is permutation-invariant over atom ordering, so
+randomized-SMILES gains are a sequence-model remedy). Against the in-run Phase-2 baseline
+control, same folds/seeds/optimizer, seed floor 0.004.
+
+| leg | macro Spearman | Δ | macro ST-RAE | Δ |
+|---|---|---|---|---|
+| control | 0.6059 | — | 0.4131 | — |
+| (a) proxy supervision | 0.5918 | **−0.0141** | 0.4573 | **+0.0442** |
+| (b) credible-interval MC | 0.6009 | −0.0050 | 0.4196 | +0.0065 |
+
+**Leg (a) first required a factual correction to the plan.** There are **no screen-only
+molecules**: all 4,376 unique single-concentration compounds are already in the DRC table
+(InChIKey; exactly 1 differs by SMILES string alone). The screen is a strict subset, not an extra
+pool — which is also why the predicted-primary *feature* (§25) worked: it adds a second readout on
+the *same* compounds. Retargeted to the sparse DRC matrix instead: **11,505 (compound, isoform)
+cells** have a measured log2FC and no DRC pIC50, versus 6,525 supervised cells (**+176%**).
+Per-fold `log2FC + structure → pIC50` mappings recovered held-out pIC50 well (Pearson
+**0.901 / 0.860 / 0.756 / 0.933**), so the proxy targets are not the problem.
+
+**Why it still hurt, and the lesson.** The damage is wildly asymmetric: ST-RAE **+0.0442** against
+Spearman −0.0141, worst on CYP1A2 (ST-RAE **+0.088**). Proxy cells are necessarily **point**
+targets, and 11,505 of them — nearly 2× the real supervision even at weight 0.3 — pull the model
+back toward point regression. That destroys the one thing §14 established as this entry's key
+modelling lever: the interval hinge scores **zero inside the reported interval**, which *is* the
+competition metric. Replacing a free zone with a hard point is penalised exactly where the metric
+rewards interval awareness. **More supervision at the wrong fidelity is worse than less
+supervision at the right one.**
+
+Leg (b) fails for the same underlying reason, more mildly: drawing a specific point from inside
+`[lo, hi]` each epoch adds variance and discards the hinge's agreement with the metric. Scoring
+distance to the nearest bound beats sampling within the bound.
+
+**Verdict: no board slot.** Neither leg is recommended; the current submission stands. This closes
+Phase 3; **Phase 4 remains fenced** by instruction, and the null ranking-lever count goes
+**17 → 19**. The positive reading: §14's interval formulation is now validated a second way — not
+just by what improved it, but by two independent attempts to add information that failed *because*
+they diluted it.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,

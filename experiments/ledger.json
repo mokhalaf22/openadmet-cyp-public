@@ -357,5 +357,85 @@
   "wall_time_s": 1213.1,
   "commit": "1f312ed",
   "status": "ok"
+ },
+ {
+  "when": "2026-10-04T13:18:15+00:00",
+  "phase": "phase3",
+  "step": "proxy_targets",
+  "config": {
+   "note": "per-fold log2FC->pIC50 mapping; separate process (LightGBM/OMP)"
+  },
+  "metrics": {},
+  "wall_time_s": 32.3,
+  "commit": "9501050",
+  "status": "ok"
+ },
+ {
+  "when": "2026-10-04T13:34:11+00:00",
+  "phase": "phase3",
+  "step": "proxy",
+  "config": {
+   "proxy_cells": 11505,
+   "weight": 0.3,
+   "retargeted": "no screen-only molecules exist; fills sparse DRC cells"
+  },
+  "metrics": {
+   "spearman": {
+    "CYP1A2": 0.5184339389917333,
+    "CYP2C9": 0.6585113147335148,
+    "CYP2D6": 0.4144131244139623,
+    "CYP3A4": 0.7756461969057716
+   },
+   "st_rae": {
+    "CYP1A2": 0.5954520561198161,
+    "CYP2C9": 0.3347254879480116,
+    "CYP2D6": 0.6228282970868626,
+    "CYP3A4": 0.27619570774882746
+   },
+   "st_rae_fold_std": {
+    "CYP1A2": 0.09523892555395294,
+    "CYP2C9": 0.02710693535653086,
+    "CYP2D6": 0.025776745597753455,
+    "CYP3A4": 0.01297135609334117
+   },
+   "spearman_macro": 0.5917511437612455,
+   "st_rae_macro": 0.45730038722587946
+  },
+  "wall_time_s": 955.4,
+  "commit": "9501050",
+  "status": "ok"
+ },
+ {
+  "when": "2026-10-04T14:02:11+00:00",
+  "phase": "phase3",
+  "step": "ci_mc",
+  "config": {
+   "draws": "1 uniform draw inside [lo,hi] per epoch, L1 to the draw"
+  },
+  "metrics": {
+   "spearman": {
+    "CYP1A2": 0.5264648782327409,
+    "CYP2C9": 0.6661681801860518,
+    "CYP2D6": 0.42986567496117506,
+    "CYP3A4": 0.7812412598776344
+   },
+   "st_rae": {
+    "CYP1A2": 0.509465505220002,
+    "CYP2C9": 0.31386395108620896,
+    "CYP2D6": 0.5752500270143088,
+    "CYP3A4": 0.2798922504659948
+   },
+   "st_rae_fold_std": {
+    "CYP1A2": 0.034991833126661834,
+    "CYP2C9": 0.021167130810312258,
+    "CYP2D6": 0.03423418285615696,
+    "CYP3A4": 0.01422055448884418
+   },
+   "spearman_macro": 0.6009349983144006,
+   "st_rae_macro": 0.4196179334466287
+  },
+  "wall_time_s": 1680.1,
+  "commit": "9501050",
+  "status": "ok"
  }
 ]
