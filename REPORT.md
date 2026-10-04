@@ -117,6 +117,50 @@ measured data.** Within the public-data envelope, the model's ordering is at its
 ceiling (OOF Spearman ≈ 0.604; blind 0.6965; leaders ≈ 0.78), and closing the rest would require
 measured data on this specific Enamine expansion, which is not publicly available.
 
+### 5a. A stronger negative: the data existed, was close, and still did not help
+
+§5 says the useful public data does not exist. We then tested the harder version of that claim by
+**manufacturing** the missing data, and it still failed — which is the more informative result.
+
+Using the SmallWorld API against Enamine REAL we retrieved **111,361 unlabelled compounds** around
+the 750 blinded structures (after excluding challenge train/test, 6 quarantined overlaps, a
+physicochemical-envelope filter, and an alert screen with a subtractive veto so no alert firing on a
+blinded compound could prune the corpus). The corpus is genuinely dense where it matters:
+
+| | median NN Tanimoto | ≥0.7 |
+|---|---|---|
+| blinded → corpus | **0.818** | **90.3%** |
+| training → corpus | 0.406 | 2.2% |
+| *(for scale)* training → blinded | 0.294 | 0.7% |
+
+We pretrained the D-MPNN encoder on it with a computed-physicochemical head (no measured label ever
+touches a retrieved compound), then fine-tuned on the DRC targets. Results, against an in-run
+control, 3 seeds, scaffold folds (FINDINGS §40–§43):
+
+- **warm start: −0.0042 macro Spearman** (no gain);
+- a per-epoch trajectory probe showed the warm start *starts ahead* (epoch-1 inner-validation
+  −0.0075) but is **erased by epoch 2**;
+- so we held the encoder in place two ways — encoder LR at 1/10, and frozen 5 epochs then released —
+  and **both were markedly worse: −0.0184 and −0.0174 macro Spearman**, worse on every isoform.
+
+**Holding the pretrained representation cost more than letting the fine-tune overwrite it.** The
+fine-tune was therefore not destroying something valuable; it was correctly discarding a
+representation that does not serve the task. The early advantage was *conditioning*, not transfer.
+
+**What this establishes, stated plainly so nobody repeats it:**
+1. **Unlabelled structural density is not the information this task lacks.** 111k compounds at
+   median 0.818 to the test set changed nothing. The missing quantity is *measured potency*, and
+   structural proximity is not a substitute for it.
+2. **Nearby chemistry does not substitute for measured labels.** Retrieval difficulty was never the
+   bottleneck — we solved retrieval (90.3% anchor density, up from 13.3% via ChEMBL/PubChem) and the
+   bottleneck did not move.
+3. **An "erased warm start" is not automatically a warm start worth protecting.** Before spending
+   effort on frozen layers or discriminative learning rates, test whether holding the representation
+   helps — here it hurt by 4x the amount the erasure did.
+
+This is a stronger negative than §5 because the usual escape hatch ("you simply lacked the data") is
+closed: the data existed, it was close, it was clean, and it still did not help.
+
 ## 6. Calibration — a separate, validated contribution
 
 Post-hoc calibration cannot change *ranking*, but it drove the actual leaderboard gains, and its
