@@ -90,9 +90,16 @@ def load():
     g["TLO"] = np.stack([df[f"{i}_pIC50_TDI_condition_conf_low"].to_numpy(float) for i in ISOS], 1)
     g["THI"] = np.stack([df[f"{i}_pIC50_TDI_condition_conf_high"].to_numpy(float) for i in ISOS], 1)
     g["TY"] = np.stack([df[f"{i}_pIC50_TDI_condition"].to_numpy(float) for i in ISOS], 1)
-    g["CLF"] = np.stack([df[f"{i}_is_TDI"].to_numpy() for i in ISOS], 1).astype(float)
-    # guards: never supervise TDI on direct-arm-never-assayed rows
-    g["CLFM"] = np.stack([tdi_trainable_mask(df, i).to_numpy() for i in ISOS], 1)
+    # `is_TDI` exists ONLY for the two scored TDI isoforms (CYP2D6, CYP3A4); the TDI-arm
+    # pIC50 exists for all four. The classifier head is therefore supervised on those two
+    # only, and the guards mask keeps direct-arm-never-assayed rows out of TDI supervision.
+    g["CLF"] = np.full((len(df), 4), np.nan)
+    g["CLFM"] = np.zeros((len(df), 4), bool)
+    for j, i in enumerate(ISOS):
+        col = f"{i}_is_TDI"
+        if col in df.columns:
+            g["CLF"][:, j] = df[col].to_numpy().astype(float)
+            g["CLFM"][:, j] = tdi_trainable_mask(df, i).to_numpy()
     g["M"] = ~np.isnan(g["Y"])
     g["TM"] = ~np.isnan(g["TY"])
     return g
