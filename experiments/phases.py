@@ -169,12 +169,38 @@ PHASES: dict[str, dict] = {
 
     # ------------------------------------------------------------------ 3 ---
     "phase3": {
-        "title": "multi-fidelity + metric-aligned training: proxy rows, CI sampling, SMILES enumeration",
-        "steps": _blocked("phase3 is fenced until GATE 2 is reviewed and its steps are wired"),
+        "title": "multi-fidelity + metric-aligned training: proxy supervision, credible-interval MC",
+        "steps": [
+            {
+                "name": "proxy_targets",
+                "run": f"{PY} experiments/proxy_targets.py",
+                "done_when": "experiments/proxy_targets.npz",
+                "config": {"note": "per-fold log2FC->pIC50 mapping; separate process (LightGBM/OMP)"},
+            },
+            {
+                "name": "proxy",
+                "run": f"{PY} experiments/phase3_train.py --leg proxy",
+                "done_when": "experiments/p3_proxy_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/p3_proxy_oof.npy"},
+                "config": {"proxy_cells": 11505, "weight": 0.3,
+                           "retargeted": "no screen-only molecules exist; fills sparse DRC cells"},
+            },
+            {
+                "name": "ci_mc",
+                "run": f"{PY} experiments/phase3_train.py --leg ci_mc",
+                "done_when": "experiments/p3_ci_mc_oof.npy",
+                "metrics": "runner:oof_metrics",
+                "metrics_args": {"npy_path": "experiments/p3_ci_mc_oof.npy"},
+                "config": {"draws": "1 uniform draw inside [lo,hi] per epoch, L1 to the draw"},
+            },
+        ],
         "gate": (
-            "GATE 3 — report (a) two-stage proxy-label rows, (b) credible-interval MC sampling,\n"
-            "(c) ~20x SMILES enumeration with test-time averaging, each against baseline.\n"
-            "Recommend at most one for a board slot."
+            "GATE 3 — (a) proxy supervision and (b) credible-interval MC sampling, each against\n"
+            "the in-run Phase-2 baseline control (0.6059 / 0.4131), seed floor 0.004.\n"
+            "SMILES enumeration dropped: a D-MPNN is permutation-invariant over atom ordering,\n"
+            "so randomized-SMILES gains are a sequence-model remedy.\n"
+            "Recommend at most one for a board slot. Phase 4 stays fenced regardless."
         ),
     },
 
