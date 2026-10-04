@@ -236,6 +236,21 @@ On the board, a threshold fix (CYP2D6 0.30, CYP3A4 0.45) lifted MA-MCC **0.273 �
 recall fell more (§30). The lesson: threshold moves cannot substitute for a better-ranked
 classifier; the leaders reach their operating point by discrimination, not a tighter cut.
 
+**The shared encoder is a measured net transfer from regression to classification** (FINDINGS §45).
+Both directions have now been tested, and they are not symmetric:
+
+- **Classification gains from sharing.** A standalone TDI-only encoder is *worse* than the shared
+  one (CYP2D6 MCC 0.111 vs 0.125; §20) — the regression data regularises the encoder.
+- **Regression pays for it.** Adding the supervised delta head (TDI-arm intervals as `mu + delta`)
+  and the TDI classifier head to the regression model costs **−0.0064 macro Spearman**, beyond the
+  seed floor and **consistent across all four isoforms** (−0.004 to −0.010).
+
+**This is why the two tracks ship from separate models**, which costs nothing because the
+competition takes two independent submission files: regression comes from a regression-only model
+(four interval heads, nothing else supervised), classification from the shared one. The point worth
+stating is that this configuration is **tested, not assumed** — we measured the cost in both
+directions rather than inheriting the architecture from the original plan.
+
 ## 8. What to reuse, and what not to bother trying
 
 **Reuse on this benchmark:**
@@ -248,6 +263,22 @@ classifier; the leaders reach their operating point by discrimination, not a tig
 - **fidelity over volume whenever the metric scores against intervals** (§3): match the *form* of
   the supervision to the metric before chasing more of it. Here 11,505 accurate-but-point proxy
   labels were worse than 6,525 interval ones;
+- **shared heads across the isoforms, but separate models per track** (§7, FINDINGS §45). Splitting
+  the four isoforms into single-task models costs −0.0189 macro Spearman, so sharing earns its
+  place. The *mechanism* is the part that generalises: the benefit of sharing scales **inversely
+  with per-task data volume** —
+
+  | isoform | ρ cost of splitting | rows |
+  |---|---|---|
+  | CYP2D6 | **−0.038** | 1,493 |
+  | CYP2C9 | −0.019 | 1,285 |
+  | CYP1A2 | −0.014 | 1,412 |
+  | CYP3A4 | −0.004 *(within noise)* | 2,335 |
+
+  Sharing subsidises the data-poor tasks from the data-rich one, so **it matters most exactly where
+  the data is thinnest** — and is close to free to give up on the task that has enough. Conversely,
+  share across *tasks of the same kind*, not across *tracks*: the regression/classification sharing
+  is a net transfer that the paying side should opt out of (§7);
 - **a structure-level leakage check before ingesting any external data** — and, as a standing
   rule: **when a challenge is run by a lab that also publishes datasets, check its public releases
   for the blinded test compounds (by canonical structure/InChIKey, not just identifiers) before

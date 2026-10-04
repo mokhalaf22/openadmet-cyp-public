@@ -498,6 +498,16 @@ and the cleaner encoder-swap comparison against shared-ecfp).
 D-MPNN representation (c, a further −0.033) each contribute roughly −0.03 macro
 ST-RAE independently, stacking to −0.065 from the control.
 
+> **Re-measured on the final architecture (§45).** The −0.032 above was obtained on the
+> **ECFP control**, before the D-MPNN encoder and the predicted-primary feature existed, so it
+> was fair to ask whether the conclusion survived the architecture it was measured on. It does:
+> re-running shared vs four single-task models on the current best configuration gives
+> **−0.0189 macro Spearman** (ST-RAE +0.0117). **Same direction, smaller magnitude** — a
+> stronger encoder and a better feature absorb some of what sharing was providing, but not all
+> of it, and sharing still earns its place. §45 also identifies the mechanism: the benefit
+> scales inversely with per-isoform data volume (CYP2D6, 1,493 rows, −0.038; CYP3A4, 2,335
+> rows, −0.004 and within the floor).
+
 **Methodological note — reused folds.** From here we make repeated modelling
 decisions against the *same* scaffold folds, so the folds double as a selection
 set and each comparison spends a little of their information. Effects within
