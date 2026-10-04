@@ -437,5 +437,87 @@
   "wall_time_s": 1680.1,
   "commit": "9501050",
   "status": "ok"
+ },
+ {
+  "when": "2026-10-04T15:05:12+00:00",
+  "phase": "arch",
+  "step": "allheads",
+  "config": {
+   "heads": "mu(4) + supervised delta(4) + TDI classifier(4)",
+   "premise_fix": "the control is already regression-only, so the test ADDS heads rather than removing them (\u00a745)"
+  },
+  "metrics": {},
+  "wall_time_s": 7.0,
+  "commit": "dd670ff",
+  "status": "failed",
+  "error": "exit 1"
+ },
+ {
+  "when": "2026-10-04T15:26:47+00:00",
+  "phase": "arch",
+  "step": "allheads",
+  "config": {
+   "heads": "mu(4) + supervised delta(4) + TDI classifier(4)",
+   "premise_fix": "the control is already regression-only, so the test ADDS heads rather than removing them (\u00a745)"
+  },
+  "metrics": {
+   "spearman": {
+    "CYP1A2": 0.5244213575996869,
+    "CYP2C9": 0.6626662968714203,
+    "CYP2D6": 0.43167293596848605,
+    "CYP3A4": 0.7790499629790193
+   },
+   "st_rae": {
+    "CYP1A2": 0.5139160931361637,
+    "CYP2C9": 0.3148796327500413,
+    "CYP2D6": 0.5767164803690246,
+    "CYP3A4": 0.27453675806945904
+   },
+   "st_rae_fold_std": {
+    "CYP1A2": 0.033017988541837386,
+    "CYP2C9": 0.02738355761741326,
+    "CYP2D6": 0.02943119025681217,
+    "CYP3A4": 0.020306344770134026
+   },
+   "spearman_macro": 0.5994526383546531,
+   "st_rae_macro": 0.4200122410811722
+  },
+  "wall_time_s": 1181.1,
+  "commit": "ecc75b8",
+  "status": "ok"
+ },
+ {
+  "when": "2026-10-04T15:49:55+00:00",
+  "phase": "arch",
+  "step": "per_isoform",
+  "config": {
+   "models": "4 single-task, own encoder each",
+   "retests": "-0.032 macro shared-vs-per-isoform, measured on the ECFP control before the D-MPNN encoder and predicted-primary"
+  },
+  "metrics": {
+   "spearman": {
+    "CYP1A2": 0.5164060877770552,
+    "CYP2C9": 0.6490310152378226,
+    "CYP2D6": 0.4035788072552597,
+    "CYP3A4": 0.7790257328808221
+   },
+   "st_rae": {
+    "CYP1A2": 0.5188589752309023,
+    "CYP2C9": 0.32042777937908995,
+    "CYP2D6": 0.5851867428281403,
+    "CYP3A4": 0.27498354772676425
+   },
+   "st_rae_fold_std": {
+    "CYP1A2": 0.03792218553865496,
+    "CYP2C9": 0.032952462409884725,
+    "CYP2D6": 0.026636735519781265,
+    "CYP3A4": 0.014270714024407084
+   },
+   "spearman_macro": 0.5870104107877399,
+   "st_rae_macro": 0.42486426129122423
+  },
+  "wall_time_s": 1387.6,
+  "commit": "ecc75b8",
+  "status": "ok"
  }
 ]

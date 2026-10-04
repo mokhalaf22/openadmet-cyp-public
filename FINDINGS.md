@@ -2060,6 +2060,50 @@ Phase 3; **Phase 4 remains fenced** by instruction, and the null ranking-lever c
 just by what improved it, but by two independent attempts to add information that failed *because*
 they diluted it.
 
+## 45. GATE ARCH — both architecture choices are confirmed correct
+
+Two tests never previously run, against the in-run regression-only control, same folds/seeds,
+seed floor 0.004 (`experiments/arch_train.py`).
+
+**Premise correction first.** The question "does the TDI head cost the regression side?" assumed
+the control carries all heads. It does not: the Phase-2 control's network has only the four `mu`
+interval heads and its only loss term is `interval_hinge` on `mu`. (`dmpnn_primary` carries a `dr`
+module, but its output never enters the loss, so it receives no gradient — a dead head.) There was
+nothing to strip, so the test was **inverted**: add a supervised delta head (TDI-arm intervals
+enforced as `mu + delta`) and a TDI classifier head, then compare regression to the
+regression-only control. Note `is_TDI` exists only for the two **scored** isoforms (CYP2D6,
+CYP3A4) while the TDI-arm pIC50 exists for all four, so the classifier head is supervised on those
+two; `cyp.guards.tdi_trainable_mask` keeps direct-arm-never-assayed rows out of TDI supervision.
+
+| leg | macro Spearman | Δ | macro ST-RAE | Δ |
+|---|---|---|---|---|
+| control (regression-only, shared isoforms) | 0.6059 | — | 0.4131 | — |
+| **(a) all heads** (+delta, +classifier) | 0.5995 | **−0.0064** | 0.4200 | +0.0069 |
+| **(b) per-isoform** (4 single-task encoders) | 0.5870 | **−0.0189** | 0.4249 | +0.0117 |
+
+**(a) The TDI heads do cost the regression side** — beyond the floor, and consistently across all
+four isoforms (−0.004 to −0.010). Combined with §20 (a standalone TDI classifier is *worse* than
+the shared one), the shared encoder is a **net transfer from regression to classification**:
+classification gains, regression pays ≈0.006 Spearman. Since the two tracks are **separate
+submission files**, the right configuration is to ship regression from a regression-only model and
+classification from the shared one — which is **already what we do** (the shipped regression
+traces to a model whose only supervised objective is the four interval heads). No change required;
+the finding closes the loop that §20 left half-open.
+
+**(b) Isoform sharing still helps, and the original conclusion survives the architecture change.**
+Splitting into four single-task models costs −0.0189 macro Spearman. The §12 measurement (−0.032
+on the ECFP control, before the D-MPNN encoder and the predicted-primary feature) therefore holds
+in direction and is merely smaller in magnitude on the stronger configuration. The per-isoform
+pattern is informative: the benefit scales **inversely with per-isoform data volume** — CYP2D6
+(sparsest) loses most when split (−0.038), while CYP3A4 (2,335 rows, the most data) is within the
+floor (−0.004). Sharing is doing exactly what multi-task sharing is supposed to do: subsidising the
+data-poor isoforms from the data-rich one.
+
+**Status.** 21 architecture/feature/data levers now characterised; one ever improved the model
+(§25). These two are the first in a long run that **confirm** existing choices rather than failing
+to beat them, which is a different and useful kind of result: the configuration we are shipping is
+not merely untested-but-lucky.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
