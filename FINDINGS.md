@@ -2351,6 +2351,69 @@ opposite outcome, and it sharpens the §44 rule: auxiliary readouts are useful a
 heads**, harmful when pressed into the **scored** target's fidelity. Auxiliary supervision is
 about *where* you attach the label, not whether the label is informative.
 
+## 48. Experiment 1 — decorrelation achieved, averaging still null. The constraint is STRENGTH.
+
+§47 attributed the failed CYP2D6 average to member similarity (ρ 0.89–0.95) and left the
+averaging idea unrefuted. This experiment built members **chosen for decorrelation rather than
+strength** — a LightGBM specialist on ECFP+descriptors (different model class, no
+predicted-primary feature, width-weighted L1 objective), a bagged D-MPNN, and a D-MPNN with the
+predicted-primary feature removed (§31b identified it as the convergence driver).
+
+**Correlation matrix, reported before any averaging (the pre-agreed gate):**
+
+|  | ctrl | lgbm | noplog | bag | spec_all |
+|---|---|---|---|---|---|
+| ctrl | 1.000 | **0.758** | 0.837 | 0.912 | 0.920 |
+| lgbm | 0.758 | 1.000 | 0.686 | 0.751 | 0.743 |
+| noplog | 0.837 | 0.686 | 1.000 | 0.787 | 0.824 |
+
+**The gate was cleared**: `lgbm` reaches **ρ = 0.7580** vs the control, below the ~0.80 bar, so
+decorrelation is *not* beyond us — §47's claim that "we cannot generate decorrelated members" was
+wrong. Averaging nonetheless **fails**:
+
+| average (equal weight) | Spearman | Δ | ST-RAE |
+|---|---|---|---|
+| control | 0.4421 | — | 0.5681 |
+| avg[ctrl+lgbm] | 0.4312 | −0.0109 | 0.5765 |
+| avg[ctrl+lgbm+noplog] | 0.4348 | −0.0072 | 0.5737 |
+| avg[ctrl+lgbm+spec_all] | 0.4423 | +0.0002 | 0.5710 |
+| avg[ctrl+lgbm+noplog+spec_all] | 0.4416 | −0.0005 | 0.5702 |
+| avg[all five] | 0.4416 | −0.0005 | 0.5703 |
+
+Best is **+0.0002**, macro effect **+0.0001**. A tuned weighting (ctrl 0.8 / lgbm 0.2) reaches
+0.4445 (+0.0024) — still inside the floor, and tuned on the same data it is measured on.
+
+### Why: the strength/decorrelation tradeoff is monotone and strength wins
+
+Pairwise average with the control, one row per member, sorted by correlation:
+
+| member | strength | Δ vs ctrl | ρ(ctrl, m) | avg with ctrl | avg Δ |
+|---|---|---|---|---|---|
+| lgbm | 0.3647 | −0.0774 | **0.758** | 0.4312 | −0.0109 |
+| noplog | 0.3824 | −0.0596 | 0.837 | 0.4324 | −0.0097 |
+| spec_drc | 0.4040 | −0.0381 | 0.892 | 0.4334 | −0.0087 |
+| bag | 0.4175 | −0.0245 | 0.912 | 0.4384 | −0.0036 |
+| spec_all | 0.4318 | −0.0102 | **0.920** | **0.4458** | **+0.0038** |
+
+Perfectly monotone, and in the *opposite* direction to the decorrelation hypothesis:
+
+- gain vs member **strength**: Pearson **r = +0.892**
+- gain vs member **decorrelation**: Pearson **r = −0.736**
+
+**The only member that helps at all is the most correlated one, because it is the strongest.**
+Every decorrelation lever available to us — different model class, dropping the predicted-primary
+feature, bagging — buys diversity by *spending accuracy*, and the accuracy loss dominates the
+variance reduction. At ρ=0.758 the strength gap is −0.077 Spearman, and averaging cannot pay that
+back.
+
+**Corrected conclusion, replacing §47's.** The binding constraint is **not** member similarity and
+**not** the averaging idea: it is that we cannot build a member that is *simultaneously*
+decorrelated and comparably strong. The published +0.058 over four members requires that quadrant
+— members near 0.44 *and* mutually diverse. Ours occupy only the two edges: strong-and-identical
+(bag, spec_all at ρ≥0.91) or diverse-and-weak (lgbm at 0.3647). Consistent with §26 (TabICL) and
+§32 (CheMeleon): every alternative model class we have tried is materially weaker than the D-MPNN,
+so the diverse-and-strong member does not exist for us to average in. **Experiment 1: null.**
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
