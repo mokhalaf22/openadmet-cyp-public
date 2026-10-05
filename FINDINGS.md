@@ -2582,6 +2582,65 @@ Design note: both legs keep the **shared** 4-isoform model (per §45, replacing 
 specialist costs more than any transform is likely to win) and alter **only CYP2D6's head**. The
 other three isoforms retain the interval hinge untouched.
 
+## 51. Experiment 3 result — target transform is null. §50's prior confirmed.
+
+Both legs ran 15/15 fold-trainings, shared 4-isoform model, only CYP2D6's head altered
+(`experiments/exp3_cyp2d6_target.py`). Evaluated on the mask common to all three prediction sets
+(n=1,493) so the comparison is like-for-like:
+
+| leg | CYP2D6 Spearman | Δ vs control | verdict |
+|---|---|---|---|
+| control | 0.4421 | — | — |
+| **rank**-transform | **0.4432** | **+0.0011** | within the 0.004 seed floor → **null** |
+| **ordinal** (10 bins, cumulative-link) | **0.4343** | **−0.0078** | null/negative |
+
+On the leg's own mask `rank` reads 0.4452 (+0.0031); still inside the floor. **Neither transform
+moves CYP2D6's ordering.** The pre-registered prior in §50 — written before the runs — is
+confirmed, and its reasoning stands: §45 (largest sharing benefit, −0.038 when split), §48 (not
+the ensemble), §49/§49a (not the loss shape) and now §51 (not the target's functional form)
+converge on **CYP2D6 being data-limited, not objective-limited.** Four independent lines of
+evidence, and the only remaining lever on it would be more CYP2D6 labels, which we do not have
+and cannot obtain from external sources without crossing the assay-scale rule.
+
+### The ST-RAE figures are a spread artifact, not a transform failure
+
+Raw remapped ST-RAE looked catastrophic (`rank` 0.9954, `ordinal` 1.0218 vs control 0.5681), and
+that reading would be wrong. Both transforms discard the pIC50 scale, and the quantile remap used
+to recover it reimposes the **training marginal spread**:
+
+| leg | ρ | k = sd(pred)/sd(true) | ST-RAE as-is | ST-RAE at best (k, b) | k* |
+|---|---|---|---|---|---|
+| control | 0.4421 | **0.3498** | 0.5681 | 0.5670 | 0.33 |
+| rank | 0.4432 | **0.9155** | 0.9954 | **0.5810** | 0.32 |
+| ordinal | 0.4343 | **0.9595** | 1.0218 | **0.5866** | 0.31 |
+
+The remap drives k from 0.35 to ~0.92, and ST-RAE degrades accordingly — past even the
+constant-prediction baseline for this subset (**0.6633**). Rescaled to each leg's own optimal
+spread the gap closes to +0.014/+0.020, so the transforms are **mildly worse on ST-RAE even at
+their best spread**, not catastrophically so. The honest statement is the one pre-committed in
+§50: Spearman is the primary metric here, and it is null.
+
+**Incidental independent confirmation of §46.** Three different prediction sets, built by three
+different objectives, all put the ST-RAE-optimal spread at **k\* ≈ 0.31–0.33** — far below 1.0.
+Forcing k≈0.92 costs more than the entire ordering signal is worth. This reproduces the
+compression finding on predictions the spread programme never touched, which is stronger evidence
+than the original measurement: the optimum is a property of the metric and the label noise, not of
+our model.
+
+### Experiments 1–3: all three null, each for a different and now-identified reason
+
+| experiment | hypothesis | result | reason it failed |
+|---|---|---|---|
+| 1 (§48) | decorrelated ensemble members | +0.0002 | no member is both diverse *and* strong |
+| 2 (§49/§49a) | width-weighted hinge | +0.0066 | metric's per-row gradient is already uniform |
+| 3 (§51) | CYP2D6 target transform | +0.0011 | CYP2D6 is data-limited, not objective-limited |
+
+Three failures with three distinct, mechanistically identified causes — and in each case the
+mechanism was confirmed to operate (members did decorrelate to ρ=0.758; the weighting did
+reallocate error monotonically; the transforms did train) while the gain did not materialise.
+That pattern is the substantive content: **our formulation is at the optimum its own assumptions
+permit, and the remaining headroom is in the data, not the method.** Lever count: 24.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,

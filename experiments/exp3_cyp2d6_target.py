@@ -89,6 +89,11 @@ def run(leg: str) -> None:
     oof_score = []   # ranking score (for Spearman)
     oof_pic50 = []   # mapped back to pIC50 (for ST-RAE)
     for seed in (0, 1, 2):
+        ck = ROOT / f"experiments/e3_{leg}_s{seed}.npz"
+        if ck.exists():   # per-seed checkpoint: an interrupted run resumes here
+            d = np.load(ck)
+            print(f"  s{seed}: cached", flush=True)
+            oof_score.append(d["sc"]); oof_pic50.append(d["pc"]); continue
         sc = np.full(len(df), np.nan); pc = np.full(len(df), np.nan)
         for f in range(NF):
             outer = np.where((GFOLD != f) & (GFOLD >= 0))[0]
@@ -151,6 +156,7 @@ def run(leg: str) -> None:
             u = np.clip((rankdata(s) - 0.5) / len(s), 0.001, 0.999)
             pc[va] = np.interp(u, np.linspace(0.001, 0.999, 999), qgrid)
             print(f"  {leg} s{seed} fold{f}: best@{best[2]+1}ep (iv rho={best[0]:.3f})", flush=True)
+        np.savez(ck, sc=sc, pc=pc)
         oof_score.append(sc); oof_pic50.append(pc)
     np.save(ROOT / f"experiments/e3_{leg}_score.npy", np.nanmean(oof_score, 0))
     np.save(ROOT / f"experiments/e3_{leg}_pic50.npy", np.nanmean(oof_pic50, 0))
