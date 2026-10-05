@@ -2436,6 +2436,65 @@ so the diverse-and-strong member does not exist for us to average in. **Experime
 > precondition, which is why they do not transfer to a project with one strong model and several
 > weak alternatives.
 
+## 49. Experiment 2 — width-weighted hinge: the mechanism works, the trade loses
+
+Weighted the interval hinge per row by 1/(1+width)^p so learning concentrates where the metric
+charges us (§46b: 85% of ST-RAE sits in the three narrowest quartiles). `interval_hinge`'s mask
+multiplies then normalises, so a fractional mask *is* a weighted mean — no loss-function change
+needed. Two configurations only (`experiments/exp2_widthhinge.py`).
+
+| leg | macro Spearman | Δ | macro ST-RAE | Δ |
+|---|---|---|---|---|
+| control | 0.6059 | — | 0.4131 | — |
+| **w1** = 1/(1+w) | 0.5968 | −0.0091 | 0.4197 | **+0.0066** |
+| **w2** = 1/(1+w)² | 0.5939 | −0.0120 | 0.4391 | **+0.0260** |
+
+Both worse, and **the harm scales with the weighting** (w2 ≫ w1), monotone in the wrong direction.
+
+### But the mechanism did exactly what it was designed to do
+
+Per-quartile ST-RAE contribution, and this is the part worth keeping:
+
+| quartile | width | n | control | w1 | Δ | w2 | Δ | share |
+|---|---|---|---|---|---|---|---|---|
+| Q1 narrow | 0.07–0.22 | 1631 | 0.1333 | 0.1293 | **−0.0040** | 0.1274 | **−0.0060** | 36.9% |
+| Q2 | 0.22–0.34 | 1631 | 0.0876 | 0.0804 | **−0.0071** | 0.0743 | **−0.0133** | 24.2% |
+| Q3 | 0.34–0.78 | 1631 | 0.0512 | 0.0498 | −0.0014 | 0.0487 | −0.0025 | 14.2% |
+| Q4 wide | 0.78–3.13 | 1632 | 0.0895 | 0.1078 | **+0.0183** | 0.1387 | **+0.0493** | 24.8% |
+| **total** | | 6525 | 0.3615 | 0.3673 | +0.0057 | 0.3890 | +0.0275 | |
+
+**Q1–Q3 all improved, and the improvement scales with the weighting** (w2 gains more than w1 in
+every narrow quartile: −0.0060, −0.0133, −0.0025, summing to −0.0218). The reweighting
+successfully moved capacity to where the metric charges. It loses only because **Q4 degraded by
++0.0493**, more than twice the narrow-quartile gain.
+
+### The real finding: wide intervals are not free, they are *kept* free
+
+Inside-interval rate by quartile:
+
+| quartile | control | w1 | w2 |
+|---|---|---|---|
+| Q1 narrow | 14.2% | 14.7% | 14.5% |
+| Q2 | 26.3% | 26.5% | 28.0% |
+| Q3 | 39.7% | 39.8% | 38.0% |
+| Q4 wide | **43.0%** | **36.0%** | **20.7%** |
+
+Deprioritise the wide rows and the model **walks out of their intervals** — Q4's inside rate
+collapses 43.0% → 36.0% → 20.7% — at which point they stop being free and start scoring.
+
+**This corrects the §46b reading.** §46b observed that wide-interval rows were mostly inside their
+intervals and contributed little, which we read as the metric structurally not charging for them
+("predicting high is nearly free"). That is only true *conditionally*: it is an **earned
+equilibrium** that the uniform hinge is actively maintaining, not a structural exemption. The
+apparent "free" 25% of the population is free precisely *because* the loss still attends to it.
+Any reweighting that treats those rows as already-won gives the win back.
+
+**Implied direction, not tested** (two configurations only, as agreed): harm is monotone in p over
+p ∈ {0, 1, 2} → {0, +0.0057, +0.0275}, so the optimum is at or *below* p=0. Uniform weighting is
+already at/near optimal, and the gradient suggests wide rows could take *more* weight rather than
+less — the opposite of this experiment's premise. **Experiment 2: null (mechanism confirmed,
+trade-off unfavourable).**
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
