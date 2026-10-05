@@ -2641,6 +2641,75 @@ reallocate error monotonically; the transforms did train) while the gain did not
 That pattern is the substantive content: **our formulation is at the optimum its own assumptions
 permit, and the remaining headroom is in the data, not the method.** Lever count: 24.
 
+## 52. Resolving k* ≈ 0.32 against the shipped k = 0.6965 — do NOT rebuild
+
+§51's k\* ≈ 0.32 was measured on CYP2D6 alone. Swept per isoform on the shipped model's OOF
+(`dmpnn_primary_oof.npy`), with location re-fit at every k, it is **not** a macro property:
+
+| iso | ρ | k_model | **k\*** | k\*/ρ | ST-RAE @k_model | @k\* | @k=0.6965 |
+|---|---|---|---|---|---|---|---|
+| CYP1A2 | 0.526 | 0.431 | 0.42 | 0.80 | 0.5101 | 0.5098 | 0.5597 |
+| CYP2C9 | 0.665 | 0.571 | 0.56 | 0.84 | 0.3081 | 0.3080 | 0.3206 |
+| CYP2D6 | 0.440 | 0.346 | **0.33** | 0.75 | 0.5701 | 0.5698 | 0.6826 |
+| CYP3A4 | 0.784 | 0.641 | 0.63 | 0.80 | 0.2689 | 0.2687 | 0.2722 |
+| **macro** | | **0.497** | **0.48** | ~0.80 | **0.4143** | **0.4141** | **0.4588** |
+
+**Three facts, and together they say don't touch the file.**
+
+1. **The premise fails. Macro k\* is 0.48, not 0.32.** The 0.32 was CYP2D6 — the lowest-ρ isoform
+   — and k\* tracks ρ (k\* ≈ 0.80ρ across all four). A `regression_k32.parquet` would apply
+   CYP2D6's value to three isoforms where it is wrong by 0.1–0.3.
+2. **The raw model is already AT its OOF optimum.** k_model 0.497 vs k\* 0.48; ST-RAE 0.4143 vs
+   0.4141 — a **0.0002** difference. The ST-RAE-vs-k curve is **flat at its minimum**, so spread is
+   a weak lever near the optimum in *either* population. Even a correctly-aimed move buys little.
+3. **k\*/ρ is not a transportable constant.** Re-measured within strata it moves to 0.50–0.65:
+
+   | stratum | ρ | k\* | k\*/ρ |
+   |---|---|---|---|
+   | narrowest-interval quartile | 0.482 | 0.27 | 0.56 |
+   | widest-interval quartile | 0.336 | 0.19 | 0.56 |
+   | top 25% potent | 0.260 | 0.13 | 0.50 |
+   | full population | 0.652 | 0.52 | **0.80** |
+
+   Conditioning restricts range, which lowers ρ and k\* together, so these are confounded — but
+   that is the point: **k\* is a property of the evaluation population's composition, not of the
+   metric alone.** The blind set has a different composition (36% wider, §46), so the 0.80 factor
+   cannot be carried across. It is not a law, it is a fit to one population.
+
+### Reconciling §28–§30: the ladder and the OOF optimum are both correct
+
+The tension dissolves once k is read against the right reference — the same error §46 caught:
+
+- **OOF** (in-distribution, truncated): sd(true) = 0.78–1.09 per isoform. Optimal sd(pred) 0.30–0.69.
+- **Blind** (§46, backed out of our own board score): sd(true) = **1.297**, 36% wider than our
+  label sd of 0.956. The same k\* *fraction* implies a much larger *absolute* spread.
+
+§28–§30's ladder climbed from sd(pred) ≈ 0.29 (regression_final's CYP2D6) toward ~0.92, i.e. from
+**far below** the blind optimum up to roughly it. Every board gain on the way up is consistent with
+that climb, and §46b's flatline at k = 0.6965 (ST-RAE 0.6411 → 0.6404, nothing) is consistent with
+having **arrived**. Nothing needs to be revised: the ladder was right, OOF was right, and they
+disagree only because they are measured against populations of different width. §24 said this in
+advance — "expansion is not OOF-validatable; it only helps if the blind set is wider."
+
+**And OOF has already been overruled once in exactly this direction.** §24's OOF table said
+expanding to 1.0× training sd *hurt* every isoform (CYP2D6 0.572→0.891); the board then showed
+expansion *gained* 0.043 ST-RAE (§30, a move §30 itself classified as above the half-set noise
+threshold). Using OOF to argue for compression again — after it failed at precisely that call —
+needs more than a number, and the k\*/ρ instability above is the opposite of that.
+
+**Decision: no `regression_k32.parquet`, and no slot spent.** The condition set for building it
+("if the ST-RAE optimum really sits near 0.32 macro") is **not met**. Honest expected effect of any
+mild compression from k=0.71 toward ~0.56: **between −0.02 and +0.02 ST-RAE**, inside the
+half-set noise band (§30), against a live risk of giving back part of a *confirmed* +0.043 gain.
+The shipped `straeopt` stands. Lever count: 25.
+
+**What this does settle, and it is worth keeping:** the ST-RAE-optimal spread is **below** the
+R²-optimal k = ρ — about 0.8ρ in-distribution — so the two metrics genuinely want different
+calibrations, confirming §46b's disjoint-weighting result from the spread axis. That is why the
+straeopt upload moved R² by +0.0795 and ST-RAE by +0.0007. We are calibrated for R² and scored on
+ST-RAE, and the gap between the two optima is real but **too flat to exploit**, which is the
+substantive and slightly unsatisfying answer.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
