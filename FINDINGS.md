@@ -2495,6 +2495,36 @@ already at/near optimal, and the gradient suggests wide rows could take *more* w
 less — the opposite of this experiment's premise. **Experiment 2: null (mechanism confirmed,
 trade-off unfavourable).**
 
+## 50. Experiment 3 — CYP2D6 target transform. Prior recorded BEFORE running.
+
+CYP2D6 is 25% of macro and our worst isoform (Spearman **0.442**); its assay is mass-spec
+depletion rather than fluorescence, and its true values cluster low and flat — which is where
+ordering fails. Two alternatives to continuous regression, on that isoform only: rank-transform
+the target within the isoform, and ordinal binning into quantile bins with a cumulative-link loss.
+
+**Pre-registered prior (recorded before running, so it cannot be fitted to the result).** I expect
+this to come back **null**, on three converging pieces of our own evidence:
+
+1. **§45:** CYP2D6 has the **largest sharing benefit of any isoform** — splitting it into a
+   single-task model costs **−0.038** Spearman, versus −0.004 (within noise) for CYP3A4, the
+   isoform with the most data. The benefit of sharing scales inversely with per-task data volume,
+   and CYP2D6 behaves like the most data-starved of the four.
+2. **Experiment 1 (§48):** its problem is not the ensemble. Decorrelated members were obtainable
+   (ρ=0.758) and averaging still gained nothing.
+3. **Experiment 2 (§49):** its problem is not the loss *shape*. Reweighting the hinge moved
+   capacity exactly as designed and still lost.
+
+Together these point at **data-limited rather than objective-limited**: CYP2D6's ordering is poor
+because 1,493 labels clustered in a narrow, low-activity band carry little orderable signal, not
+because squared/absolute error is the wrong functional form on them. A target transform is a fair
+test of that — it changes the objective's *form* while holding data fixed — so a null here is
+positive evidence for the data-limited reading, and a gain would refute it. Either outcome is
+informative, which is why it is worth running despite the prior.
+
+Design note: both legs keep the **shared** 4-isoform model (per §45, replacing CYP2D6 with a
+specialist costs more than any transform is likely to win) and alter **only CYP2D6's head**. The
+other three isoforms retain the interval hinge untouched.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,

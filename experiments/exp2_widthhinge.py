@@ -59,8 +59,13 @@ class Net(nn.Module):
         return self.mu(self.trunk(torch.cat([self.agg(self.mp(b), b.batch), pf], 1)))
 
 
+POWERS = {"w1": 1.0, "w2": 2.0, "wm05": -0.5, "wm1": -1.0}
+# Negative p inverts the intent: weight = (1+width)^|p|, i.e. wide rows carry MORE weight.
+# §49 found harm monotone in p over {0,1,2}, implying the optimum is at or below p=0.
+
+
 def run(leg: str) -> None:
-    power = 1 if leg == "w1" else 2
+    power = POWERS[leg]
     df = pd.read_csv(D / "cyp-challenge-TRAIN_TDI.csv")
     z = np.load(ROOT / "experiments/plog_gfold.npz")
     GFOLD, oko, PLOG = z["GFOLD"], z["oko"], z["plog_o"]
@@ -129,5 +134,5 @@ def run(leg: str) -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--leg", required=True, choices=["w1", "w2"])
+    ap.add_argument("--leg", required=True, choices=list(POWERS))
     run(ap.parse_args().leg)
