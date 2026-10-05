@@ -2237,6 +2237,72 @@ clipping the extreme tail cannot reorder unless two values collapse onto one bou
 better on R². Both should move substantially, since the shared −0.48 location shift is the large
 term and the asymmetry shifts (0.06–0.16) are second-order.
 
+## 46b. straeopt result — the offset diagnosis was right, and ST-RAE still did not move
+
+| metric | before (v3b) | after (straeopt) | predicted |
+|---|---|---|---|
+| **R²** | 0.3477 | **0.4272** | ceiling ρ² = 0.4851 |
+| MA-ST-RAE | 0.6411 | **0.6404** | — |
+| Spearman | 0.6965 | **0.6965** | unchanged *by construction* |
+| rank | 77 | **75** | — |
+
+**The offset diagnosis was correct in both size and direction.** R² moved +0.0795 of the predicted
+0.1374 headroom (58% captured), landing close to the ρ² ceiling. The integrity check also held on
+the *live board*, not just locally: Spearman is bit-identical, confirming the affine pipeline is
+sound. **But MA-ST-RAE moved −0.0007 — nothing.**
+
+### Why ST-RAE did not follow R² (hypothesis tested, confirmed)
+
+ST-RAE scores **zero inside** a compound's credible interval. Wide intervals cluster at low
+activity. So a downward shift moves many predictions *further into already-free zones*, while the
+compounds that actually score — the narrow-interval ones — see no benefit or get worse. Tested on
+OOF by interval-width quartile, applying the same shift:
+
+| quartile | width | median true pIC50 | % inside before | % inside after | ΔST-RAE | share of total ST-RAE |
+|---|---|---|---|---|---|---|
+| Q1 narrow | 0.07–0.22 | 5.36 | 9.5% | 4.2% | **+0.0833** | **38.6%** |
+| Q2 | 0.22–0.34 | 4.94 | 19.2% | 11.4% | +0.0592 | 29.3% |
+| Q3 | 0.34–0.78 | 4.57 | 36.9% | 28.7% | +0.0362 | 17.1% |
+| Q4 wide | 0.78–3.13 | 3.27 | 58.8% | **73.3%** | **−0.0271** | 15.0% |
+
+**The hypothesis holds exactly.** Three facts fall out:
+1. **Interval width is an inverse proxy for activity** — median true pIC50 falls 5.36 → 3.27 from
+   narrowest to widest quartile. Wide intervals *are* the low-activity compounds.
+2. **The only quartile the shift helps is the one already scoring near-free.** Q4 was already
+   58.8% inside its intervals and the shift pushes it to 73.3% — gain concentrated precisely where
+   the metric had already stopped charging us.
+3. **85% of ST-RAE comes from Q1–Q3**, all of which get *worse*, and whose inside-interval rate is
+   only 9.5–36.9%.
+
+**Conclusion: R²-targeted calibration is structurally mismatched to this metric.** R² weights every
+compound by squared residual, so it is dominated by the large-residual low-activity compounds the
+shift fixes; ST-RAE ignores those entirely once they land inside wide intervals. The two metrics
+weight the population almost disjointly, which is why +0.08 R² bought −0.0007 ST-RAE.
+
+### Is an interval-width model worth building? No — and the reason is in the result above
+
+The proposal: predict each blinded compound's interval width from structure, then optimise the
+shift against predicted ST-RAE instead of R². **Effort: ~2–3 h** (a per-fold LightGBM width model
+— width should be at least as learnable as potency, being coarser — plus a per-isoform shift
+optimiser against predicted hinge loss). Cheap. But the expected gain is ≈0, for three reasons:
+
+1. **`straeopt` already was that experiment.** Its shifts came from the OOF-measured *ST-RAE*
+   optimum (§46 asymmetry, +0.06…+0.16 above the R² optimum), not the R² optimum. ST-RAE moved
+   −0.0007. A global per-isoform shift is therefore **already at its ST-RAE optimum**; a width
+   model would refine a parameter that is already converged.
+2. **The richer use breaks the one asset we have.** Width-*dependent* per-compound adjustment is
+   the only version with real headroom, but width is not monotone in prediction, so that transform
+   would **reorder compounds and destroy Spearman** — the quantity earning our rank, and the
+   integrity check we have relied on throughout.
+3. **85% of the score sits where calibration cannot reach.** For narrow-interval compounds, only
+   being *more accurate* helps. That is a ranking/accuracy problem, not a calibration one.
+
+**Recommendation: skip the width model; spend the remaining time on Tasks 2 and 3.** They target
+Spearman, which is the binding constraint — it both caps R² (ceiling = ρ²) and is the only lever on
+the narrow-interval 85% of ST-RAE. Task 3 has a concrete published effect size (CYP2D6 Spearman
+0.445 → 0.503 by averaging specialists into the shared model). **Calibration is now spent: two
+metrics, one exhausted lever.** Every further gain has to come from ordering compounds better.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
