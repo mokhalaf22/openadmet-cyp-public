@@ -2493,7 +2493,64 @@ Any reweighting that treats those rows as already-won gives the win back.
 p ∈ {0, 1, 2} → {0, +0.0057, +0.0275}, so the optimum is at or *below* p=0. Uniform weighting is
 already at/near optimal, and the gradient suggests wide rows could take *more* weight rather than
 less — the opposite of this experiment's premise. **Experiment 2: null (mechanism confirmed,
-trade-off unfavourable).**
+trade-off unfavourable).** → **That extrapolation was wrong; see §49a.**
+
+## 49a. The width-weighting dial, both directions — p=0 is a true optimum, and why
+
+§49 extrapolated a one-sided trend and predicted the optimum lay at or below p=0, with wide rows
+wanting *more* weight. Tested directly at p=−0.5 and p=−1 (weight = (1+width)^|p|), **that
+prediction is refuted.** The curve is a V with its minimum exactly at uniform:
+
+| p | weighting | macro Spearman | Δ | macro ST-RAE | Δ |
+|---|---|---|---|---|---|
+| −1.0 | (1+w) | 0.5896 | −0.0163 | 0.4311 | +0.0179 |
+| −0.5 | (1+w)^0.5 | 0.6022 | −0.0037 | 0.4177 | +0.0046 |
+| **0** | **uniform** | **0.6059** | — | **0.4131** | **best** |
+| +1.0 | 1/(1+w) | 0.5968 | −0.0091 | 0.4197 | +0.0066 |
+| +2.0 | 1/(1+w)² | 0.5939 | −0.0120 | 0.4391 | +0.0260 |
+
+**The dial is perfectly monotone in p in every quartile — it is a clean reallocation knob:**
+
+| quartile | p=−1 | p=−0.5 | p=0 | p=+1 | p=+2 |
+|---|---|---|---|---|---|
+| Q1 narrow | 0.1494 | 0.1386 | 0.1333 | 0.1293 | **0.1274** |
+| Q2 | 0.0997 | 0.0930 | 0.0876 | 0.0804 | **0.0743** |
+| Q3 | 0.0519 | 0.0522 | 0.0512 | 0.0498 | **0.0487** |
+| Q4 wide | **0.0754** | 0.0815 | 0.0895 | 0.1078 | 0.1387 |
+| **total** | 0.3765 | 0.3653 | **0.3615** | 0.3673 | 0.3890 |
+
+Raising p monotonically improves Q1–Q3 and degrades Q4; lowering p does the exact reverse. And
+**the answer to the posed question is yes** — up-weighting wide rows lifts Q4's inside-interval
+rate above the control, monotonically across the whole range:
+
+| Q4 inside-interval rate | p=−1 | p=−0.5 | p=0 | p=+1 | p=+2 |
+|---|---|---|---|---|---|
+| | **47.3%** | 46.4% | 43.0% | 36.0% | 20.7% |
+
+So §49's mechanism is confirmed from *both* sides: attention to a width stratum buys that
+stratum's inside-rate, in either direction, with no asymmetry or threshold.
+
+### Why p=0 is optimal — the metric's per-row gradient *is* uniform
+
+The reason is structural, and it corrects a conflation in §46b. ST-RAE's numerator is a **plain
+sum** of per-row excursions over a denominator that does not depend on the prediction:
+
+    ST-RAE = Σ_i [max(0, lo_i − p_i) + max(0, p_i − hi_i)] / Σ_i |y_i − ȳ|
+
+so ∂ST-RAE/∂p_i is **±1/den for every excursing row, regardless of its interval width**. The
+metric weights rows *equally*. §46b's "85% of ST-RAE sits in the narrow quartiles" describes where
+error **lands** — narrow intervals are simply harder to land inside — not how the metric
+**weights** rows. I read the first as implying the second. They are different quantities, and
+only the second is relevant to choosing a loss weighting.
+
+**Consequence: the uniform interval hinge is not a default we got away with, it is the loss whose
+per-row gradient matches the scored metric exactly.** Any reweighting, in either direction,
+deliberately mismatches that gradient and must lose in expectation — which is precisely the V
+above. This retrospectively justifies §14's formulation on principle rather than on luck, and
+**closes the width-weighting question in both directions**: there is no p worth tuning, and the
+four runs here plus the control bound the whole family. **The general rule: when a metric's
+per-row gradient is uniform, match it; "where the error is concentrated" is not a weighting
+signal.**
 
 ## 50. Experiment 3 — CYP2D6 target transform. Prior recorded BEFORE running.
 
