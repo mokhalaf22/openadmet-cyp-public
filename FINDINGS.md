@@ -2137,18 +2137,41 @@ the attributed b); residuals ≈ Gaussian, to tie MAE to σ; R² = 1 − SS_res/
 | we are at | 0.3477 → **headroom 0.1374** |
 
 **Two conclusions, and the second is the actionable one.**
-1. **The dispersion programme is finished.** k=0.7108 vs optimum 0.6965 puts us 0.0002 below the
-   ceiling *on the spread axis* (2ρk−k² is flat at its maximum). v3b slightly **overshot**; more
-   dispersion would now cost. The §28–§30 ladder succeeded by accident of reference: we targeted
-   1.0× *training* spread, and because the blind population is **1.36× wider** than our labels,
-   that landed at k ≈ ρ.
+1. **The dispersion programme is finished — right answer, wrong reference.** The spread ladder
+   (§28–§30) reached **k = 0.7108 against an optimum of ρ = 0.6965**, i.e. 0.0002 below the
+   ceiling on the spread axis (2ρk−k² is flat at its maximum), and v3b slightly **overshot** — more
+   dispersion would now cost. But we got there by targeting **1.0× the *training* spread**, which
+   is the wrong reference: it worked **only because the blind population is 1.36× wider than our
+   labels**, so 1.0×label ≈ ρ×blind by coincidence. Had the blind population matched our labels,
+   the same procedure would have landed at k = 1.0 and left ~0.09 R² on the table. The right
+   reference is ρ × sd(true, blind); the agreement here was luck, not method.
 2. **100% of the remaining headroom is location**: 0.4851 − 0.3477 = 0.1374 = b² exactly. We are
    **over-predicting by ≈0.48 log units**. Direction corroborated independently: the CYP2D6 −0.5
    location shift gained 105 ranks (§27).
 
-**The blind population is wider than our labels (1.297 vs label-sd mean 0.956).** This is direct
-empirical support for the truncation argument: a label set built only from successful curve fits
-excludes non-inhibitors and is therefore narrower than the population it is drawn from.
+**Our own data confirms the truncation argument.** sd(true) of the blind population = **1.297**
+versus our label sd = **0.956** — the population we are scored against is **36% wider** than the
+labels we trained on. This is not an argument borrowed from the competitor's write-up; it is backed
+out of *our own* leaderboard score, and it is the mechanism they describe: a label set built only
+from successful curve fits silently excludes non-inhibitors, so it is **truncated**, and the blind
+set — enriched for exactly the compounds that fail to fit — is wider. Any model calibrated to the
+spread of its own training labels is therefore calibrated to the wrong distribution.
+
+**The 0.48 offset is an inference under a stated assumption, not a measurement.** The
+decomposition needs **Pearson** ρ; the board reports **Spearman** (0.6965). We assume ρ_P ≈ ρ_S.
+Pearson is typically ≥ Spearman, and the sensitivity is **asymmetric between the two conclusions**:
+
+| assumed ρ_P | R² ceiling | implied k | implied offset |
+|---|---|---|---|
+| 0.6965 *(=Spearman)* | 0.4851 | 0.7108 | **+0.480** |
+| 0.7200 | 0.5184 | 0.7127 | +0.534 |
+| 0.7500 | 0.5625 | 0.7162 | +0.595 |
+| 0.7800 | 0.6084 | 0.7209 | +0.648 |
+
+**k is robust** (0.711–0.721 across the range) so conclusion 1 holds regardless. **The offset is
+not**: it ranges 0.48–0.65, and because the true Pearson is probably above Spearman, **0.48 is the
+conservative end** — the real over-prediction is likely larger, and the ceiling higher than 0.4851.
+We deliberately correct by the conservative amount rather than the point estimate we would prefer.
 
 **qHTS cross-check — performed, FAILED, and down-weighted.** AID 1851 per-isoform inactivity
 (17,143 compounds each): CYP1A2 42.3%, CYP2C9 51.2%, CYP2D6 65.0%, CYP3A4 45.2%. The implied
@@ -2172,6 +2195,37 @@ shift that maximises R²): CYP1A2 **+0.060**, CYP2C9 **+0.090**, CYP2D6 **+0.090
 |---|---|---|---|---|---|
 | **r2opt** (R²-optimal) | 4.487 | 4.436 | 3.763 | 4.310 | `submissions/regression_r2opt.parquet` |
 | **straeopt** (+asymmetry) | 4.547 | 4.526 | 3.853 | 4.470 | `submissions/regression_straeopt.parquet` |
+| **straeopt_2d6keep** (CYP2D6 exempt) | 4.387 | 4.366 | 4.333 | 4.310 | `submissions/regression_straeopt_2d6keep.parquet` |
+
+### 46a. Provenance of the location shift — CYP2D6 is double-corrected, and that is probably right
+
+The recalibration recentres from **v3b**, which already carries the validated §24 CYP2D6 −0.5.
+Net shift relative to the **raw model output**:
+
+| variant | CYP1A2 | CYP2C9 | CYP2D6 | CYP3A4 |
+|---|---|---|---|---|
+| v3b (shipped) | 0.000 | 0.000 | −0.500 | 0.000 |
+| r2opt | −0.480 | −0.480 | **−0.980** | −0.480 |
+| straeopt | −0.420 | −0.390 | **−0.890** | −0.320 |
+| straeopt_2d6keep | −0.580 | −0.550 | −0.410 | −0.480 |
+
+So **CYP2D6 is double-corrected** in `r2opt`/`straeopt`. Two points on whether that is an error:
+
+*It is macro-coherent.* b=0.480 was derived from **v3b's own** board score, so it is the
+**residual** offset remaining *after* the §24 shift — applying it to v3b is correct in the macro.
+The questionable step is allocating it **uniformly**, since CYP2D6 is the only isoform already
+individually corrected and its residual is plausibly smaller than the others'.
+
+*But the independent evidence says CYP2D6 should sit lowest.* The organizers confirmed the test
+set excluded CYP2D6 hit-expansion, so its compounds are less potent (§23); CYP2D6 also has the
+**highest qHTS inactivity (65%)** and the **lowest** mixture centre (3.138) of the four. A correct
+calibration should therefore place CYP2D6 **below** the other isoforms. `straeopt` does
+(3.853 vs 4.47–4.55) and still sits well above the qHTS estimate; `straeopt_2d6keep` instead
+flattens all four to ≈4.31–4.39, which **contradicts** §23. The exempt variant is built and
+available, but the evidence favours keeping the double correction.
+
+Recommendation: **`straeopt`**. The board scores MA-ST-RAE, the asymmetry is measured not assumed,
+and the uniform allocation happens to place CYP2D6 where the independent shift evidence wants it.
 
 **Integrity check passed.** Spearman vs the base submission is **1.000000000000** for every
 isoform in both variants, to 12 decimal places — the transform is affine with positive scale,
