@@ -2303,6 +2303,54 @@ the narrow-interval 85% of ST-RAE. Task 3 has a concrete published effect size (
 0.445 → 0.503 by averaging specialists into the shared model). **Calibration is now spent: two
 metrics, one exhausted lever.** Every further gain has to come from ordering compounds better.
 
+## 47. Task 3 — CYP2D6 specialists: the average cannot gain, because our members converged
+
+Two specialists (`experiments/task3_specialists.py`), GFOLD, 3 seeds, averaged into the shared
+model on CYP2D6 only (§45 already showed per-isoform models are worse as *replacements*; these are
+ensemble members). Leakage rule: a fold's validation rows were excluded from training entirely,
+whichever readout they carried, since every auxiliary CYP2D6 readout correlates with its scored
+label. Evaluated on all 1,493 CYP2D6-labelled rows.
+
+| member / average | Spearman | Δ vs shared | ST-RAE |
+|---|---|---|---|
+| shared model (control) | **0.4421** | — | 0.5681 |
+| `spec_all` (every CYP2D6 readout) | 0.4318 | −0.0102 | 0.5736 |
+| `spec_drc` (direct pIC50 only) | 0.4040 | −0.0381 | 0.5851 |
+| avg[ctrl + spec_all] | **0.4458** | **+0.0038** | 0.5674 |
+| avg[ctrl + spec_drc] | 0.4334 | −0.0087 | 0.5720 |
+| avg[spec_all + spec_drc] | 0.4236 | −0.0185 | 0.5774 |
+| avg[ctrl + spec_all + spec_drc] | 0.4373 | −0.0048 | 0.5708 |
+
+Best average is **+0.0038**, *below* the 0.004 seed floor → **null**. Macro effect of swapping in
+the best average is ≈ **+0.0009** (one isoform of four) — negligible. **No board slot.**
+
+**The pairwise rank correlations say why, and it is the risk flagged in advance:**
+
+| pair | rank ρ |
+|---|---|
+| shared vs `spec_all` | **0.9196** |
+| shared vs `spec_drc` | **0.8922** |
+| `spec_all` vs `spec_drc` | **0.9471** |
+
+**0.89–0.95 — squarely the §31b convergence regime** (0.81–0.97) that reduced the earlier
+D-MPNN/LightGBM blend to +0.002. Averaging can only help when members make *independent* errors;
+ours do not. This is a **different finding from "the approach does not work"**: the published
++0.058 (0.445 → 0.503 over a four-member average) is not refuted here — we simply **cannot test it**,
+because we cannot generate decorrelated members. Our would-be members share the encoder
+architecture, the predicted-primary feature, the folds, and the objective; the only diversity on
+offer was the training population (CYP2D6 rows only, ~1.5k vs ~6.1k) and the auxiliary readouts,
+and that bought ρ ≈ 0.92. A real ensemble needs genuinely different model classes, which §32 (CheMeleon)
+and §26 (TabICL) already showed we cannot make competitive individually — so we have no pool of
+strong, diverse members to draw from. **That, not the averaging idea, is our binding limitation.**
+
+**Sub-finding worth keeping (contrast with §44).** `spec_all` beat `spec_drc` by **+0.028**
+Spearman: adding CYP2D6's TDI-arm pIC50, both Emax arms and single-concentration log2FC as
+**separate auxiliary heads** helped the specialist. That is the *opposite* sign to §44, where
+screen-derived **proxy point targets on the scored head** cost ST-RAE +0.0442. Same source data,
+opposite outcome, and it sharpens the §44 rule: auxiliary readouts are useful as their **own
+heads**, harmful when pressed into the **scored** target's fidelity. Auxiliary supervision is
+about *where* you attach the label, not whether the label is informative.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
