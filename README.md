@@ -8,7 +8,7 @@ CYP3A4/CYP2D6 (MCC).
 
 - **[`REPORT.md`](REPORT.md)** — the model report: the argument, the final models, and what to
   reuse vs. not bother trying. Start here.
-- **[`FINDINGS.md`](FINDINGS.md)** — the full evidence log (numbered experiments §1–§45): every
+- **[`FINDINGS.md`](FINDINGS.md)** — the full evidence log (numbered experiments §1–§52): every
   ablation, negative result, live-board result, and derivation behind the report.
 
 **One-line summary.** The ceiling on this benchmark is *representational*: a learned D-MPNN

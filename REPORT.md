@@ -93,6 +93,31 @@ was accurate; its *fidelity* was wrong.
 > right one.** When the metric scores against intervals, a confident point target is not a weaker
 > version of an interval — it is a different and conflicting claim about what was measured.
 
+**Validated a third way, and this one reframes the hinge from default to derivation.** The hinge
+weights every row equally. Because 85% of our ST-RAE came from the three narrowest interval
+quartiles (FINDINGS §46b), reweighting the loss toward them looked obviously right. We swept the
+weight exponent p in `1/(1+width)^p` over five values, **both** directions (FINDINGS §49, §49a):
+
+| p | −1 | −0.5 | **0 (uniform)** | +1 | +2 |
+|---|---|---|---|---|---|
+| macro OOF ST-RAE | 0.4311 | 0.4177 | **0.4131** | 0.4197 | 0.4391 |
+
+A V with its minimum exactly at uniform. The dial itself worked perfectly — monotone in p within
+every quartile, and Q4's inside-interval rate moved 20.7% → 47.3% across the range — so this is
+not a mechanism that failed to engage. It is a reallocation that has nothing to gain.
+
+The reason is structural. ST-RAE's numerator is a **plain sum** of per-row excursions over a
+prediction-independent denominator, so `∂ST-RAE/∂pᵢ = ±1/den` for every excursing row **regardless
+of its interval width**: the metric weights rows *equally*. "85% of the error sits in the narrow
+quartiles" describes where error **lands** — narrow intervals are simply harder to land inside —
+not how the metric **weights** rows. Those are different quantities, and we had conflated them.
+
+> **General rule: when a metric's per-row gradient is uniform, match it. Where the error
+> concentrates is not a weighting signal.** The uniform interval hinge is therefore not a default
+> we got away with — it is the loss whose per-row gradient matches the scored metric exactly, and
+> any reweighting in either direction deliberately mismatches that gradient and must lose in
+> expectation. Five runs bound the whole family; there is no p worth tuning.
+
 ## 4. The one auxiliary lever that worked — the predicted primary screen
 
 The single-concentration screen (log2FC) is a **different assay** from the scored dose-response
@@ -214,6 +239,32 @@ story is a reusable lesson in OOF-vs-blind divergence.
   unchanged at 0.6965; FINDINGS §30, §30a). Compression was costing us, not encoding honest
   uncertainty.
 
+**The two metrics want different spreads, and the gap is real but not exploitable.** Decomposing
+`R² = 2ρk − k² − b²` (k = sd(pred)/sd(true), b = mean offset in sd(true) units) makes the
+R²-optimal spread **k = ρ, not k = 1**. Inverting our own board score gave k = 0.7108 against
+ρ = 0.6965 — on the optimum — and attributed **100% of the remaining R² headroom to location**
+(b = +0.48 log units; FINDINGS §46). Acting on it moved blind **R² 0.3477 → 0.4272** and
+**ST-RAE 0.6411 → 0.6404**: the algebra was right and the scored metric did not care.
+
+That divergence is structural, and we measured it from the spread axis too (FINDINGS §52). Swept
+per isoform on OOF with location re-fit at every k, the **ST-RAE-optimal spread sits *below* the
+R²-optimal k = ρ — about 0.8ρ in-distribution** (CYP1A2 0.42, CYP2C9 0.56, CYP2D6 0.33, CYP3A4
+0.63 against ρ of 0.53/0.67/0.44/0.78). So a model calibrated for R² is mis-calibrated for ST-RAE
+by construction. **But the gap is not exploitable:** the ST-RAE-vs-k curve is *flat at its
+minimum* — our raw model sits at k = 0.497 against an optimum of 0.48, a difference of **0.0002
+ST-RAE** — and k\*/ρ is not a transportable constant (0.50–0.65 within strata vs 0.80 on the full
+population), because k\* is a property of the evaluation population's composition, not of the
+metric alone.
+
+> **Two populations, not one contradiction.** OOF's in-distribution sd(true) is 0.78–1.09 per
+> isoform; the blind population's, backed out of our own score, is **1.297** — 36% wider than our
+> label sd of 0.956, because a label set built only from successful curve fits silently excludes
+> non-inhibitors. The same k\* *fraction* therefore implies a much larger *absolute* spread on the
+> blind set. This is why OOF said expanding spread **hurt** every isoform (§24) while the board
+> said it **gained 0.043** (§30) — and **the board was right.** We did not act on an OOF-derived
+> compression argument a second time (§52): the same reference error, caught twice, is a
+> methodology failure rather than bad luck.
+
 We codified a **live-board discipline** to avoid overfitting the scored half (FINDINGS §31c): OOF
 is a weak prior (calibrated on only two independent points), act only on board moves above the
 split standard error (~0.03), require OOF-and-board agreement for the final pick, and treat the
@@ -298,7 +349,27 @@ directions rather than inheriting the architecture from the original plan.
   inaccurate (held-out Pearson 0.76–0.93) but because a point target contradicts the interval the
   assay actually reported, and the metric scores intervals: ST-RAE +0.0442 (§3);
 - **sampling the target from inside the reported interval** — it discards the hinge's agreement
-  with the metric and adds variance for nothing: ST-RAE +0.0065 (§3).
+  with the metric and adds variance for nothing: ST-RAE +0.0065 (§3);
+- **reweighting the loss toward where the error concentrates** — the metric's per-row gradient is
+  already uniform, so any weighting mismatches it; five exponents bound the family and uniform wins
+  (§3, FINDINGS §49a);
+- **ensembling, in the regime where only one of your models is good** (FINDINGS §48). This one is
+  worth stating as a precondition rather than a result, because the published gains are real and
+  simply do not transfer:
+
+  > **Averaging pays only when members are *both* mutually diverse *and* comparably strong.** Those
+  > are two requirements, not one, and they trade off: **every diversity lever buys diversity by
+  > spending accuracy** — a different model class, dropping a shared feature, resampling the
+  > training set. We measured the trade directly on CYP2D6: the average's gain correlated **+0.892
+  > with member strength** and **−0.736 with member decorrelation**, and the only member that helped
+  > at all was the *most* correlated one (ρ = 0.920), because it was the strongest.
+
+  We could reach ρ = 0.758 between members — genuine decorrelation — and the average still gained
+  **+0.0002**. Our alternative model classes (LightGBM, TabICL, CheMeleon) are all materially weaker
+  than the D-MPNN, so the diverse-*and*-strong member does not exist for us to average in. **The
+  practical pre-test is not "do my members differ?" but "do I have two or more independently built
+  models of comparable accuracy?"** If not, the effort belongs in making a second model strong, not
+  in combining weak ones.
 
 ## 9. Limitations, reproducibility, and external-data disclosure
 
@@ -306,10 +377,18 @@ directions rather than inheriting the architecture from the original plan.
   proxy for *ordering* but not *calibrated magnitude* here (§6); size confidence to the size of
   the move.
 - **The gap to the leaders is a data property, not an unexplored method** (§5, §5a). We enumerate
-  **21** architecture/feature/data levers (FINDINGS §37 for the first 14, §40–§45 for the rest):
-  **one** improved the model — the predicted-primary-screen feature (§4) — and two *confirmed*
-  existing choices rather than beating them (§7, §8: isoform sharing, and separate models per
-  track). The search space we could reach was explored and characterised, not left open.
+  **25** architecture/feature/data/calibration levers (FINDINGS §37 for the first 14, §40–§52 for
+  the rest): **one** improved the model — the predicted-primary-screen feature (§4) — and four
+  *confirmed* existing choices rather than beating them (isoform sharing and separate models per
+  track, §7/§8; the uniform interval hinge, §3; and our shipped spread, §6). The search space we
+  could reach was explored and characterised, not left open.
+- **The last three levers failed with three distinct, identified causes**, which is the useful
+  form of a negative result: no ensemble member is both diverse and strong (§8); the metric's
+  per-row gradient is already uniform, so no loss reweighting can help (§3); and CYP2D6 is
+  data-limited rather than objective-limited — neither a rank transform nor an ordinal
+  cumulative-link target moved it (FINDINGS §48, §49a, §51). In each case the *mechanism* was
+  confirmed to operate while the gain did not appear, which is why we read the formulation as being
+  at the optimum its own assumptions permit.
 - **Reproducibility:** pinned data revision, deterministic scaffold folds, `make data | inspect |
   baseline | submit`; experiments in `experiments/` are phased and per-fold/seed checkpointed.
   Neural training is multi-threaded (non-bitwise-reproducible); the ~0.004 seed-ensemble spread
