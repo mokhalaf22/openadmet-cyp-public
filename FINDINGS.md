@@ -2414,6 +2414,28 @@ decorrelated and comparably strong. The published +0.058 over four members requi
 §32 (CheMeleon): every alternative model class we have tried is materially weaker than the D-MPNN,
 so the diverse-and-strong member does not exist for us to average in. **Experiment 1: null.**
 
+> **Generalisable condition — when ensembling pays.** This is not a fact about CYP2D6; it is the
+> standing condition on averaging, and it is worth carrying out of this project. **Averaging helps
+> only when members are *both* mutually diverse *and* comparably strong.** Those are two
+> requirements, not one, and they trade off against each other: the levers that create diversity
+> (different model class, removing a shared feature, resampling the training set) all buy it by
+> spending accuracy. A project can therefore sit in one of four places, and only one of them pays:
+>
+> | | diverse | similar |
+> |---|---|---|
+> | **comparably strong** | **ensembling pays** | no diversity to exploit (§31b, §47) |
+> | **weak** | accuracy loss dominates (§48 `lgbm`) | worst of both |
+>
+> We measured the tradeoff directly — gain correlates **+0.892** with member strength and
+> **−0.736** with member decorrelation — so in our regime diversity is *anti*-predictive of gain,
+> because it is inseparable from weakness. The practical test before investing in an ensemble is
+> therefore not "are my members different?" but **"do I have two or more independently-built models
+> of comparable accuracy?"** If the answer is no, the ensemble cannot pay regardless of how
+> decorrelated the weak members are, and the effort belongs in making a second model strong
+> instead. Published ensemble gains (e.g. +0.058 over four members) implicitly assume that
+> precondition, which is why they do not transfer to a project with one strong model and several
+> weak alternatives.
+
 ## Reproduce
 
 Numbers and plots regenerated from `data/` (pinned revision) by the EDA scripts,
